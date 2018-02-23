@@ -13,11 +13,11 @@ namespace SteamCommunity
 		{
 			Error = error;
 			if (Error is XmlException)
-				Message = $"[LeastPortals.Core] Failed to parse {type} object.";
+				Message = $"[SteamCommunity.Net] Failed to parse {type} object.";
 			else if (Error is HttpRequestException)
-				Message = $"[LeastPortals.Core] Failed to fetch {type} object.";
+				Message = $"[SteamCommunity.Net] Failed to fetch {type} object.";
 			else
-				Message = $"[LeastPortals.Core] Failed to create {type} object.";
+				Message = $"[SteamCommunity.Net] Failed to create {type} object.";
 		}
 
 		public override string ToString()

@@ -83,7 +83,8 @@ namespace SteamCommunity
 			uint entryEnd = 5000,
 			bool ignoreCache = false)
 		{
-			if (entryStart < 0) throw new InvalidOperationException("Start parameter cannot be negative.");
+			if (entryEnd - entryStart  > 5000)
+				throw new InvalidOperationException("Cannot fetch more than 5000 entries.");
 
 			var result = default(IGlobalLeaderboard);
 			try
