@@ -15,7 +15,7 @@ namespace SteamCommunity.API
 			_client = new HttpClient();
 			_client.DefaultRequestHeaders.UserAgent.ParseAdd
 			(
-				"SteamCommunityClient/1.0" +
+				"SteamCommunity.Net/1.0" +
 				((!string.IsNullOrEmpty(userAgent)) ? $" {userAgent}" : string.Empty)
 			);
 		}

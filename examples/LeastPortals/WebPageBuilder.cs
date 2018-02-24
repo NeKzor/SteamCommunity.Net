@@ -30,7 +30,7 @@ namespace LeastPortals
 		private List<Player> _mpPlayers;
 
 		private readonly string _gameName;
-		private readonly SteamCommunityClient _client;		
+		private readonly SteamCommunityClient _client;
 
 		public WebPageBuilder(string gameName)
 		{
@@ -41,7 +41,7 @@ namespace LeastPortals
 			_client = new SteamCommunityClient("LeastPortals/1.0", false);
 			_client.Log += Logger.LogSteamCommunityClient;
 		}
-
+		
 		public async Task Initialize()
 		{
 			var game = await _client.GetLeaderboardsAsync(_gameName);
@@ -63,9 +63,13 @@ namespace LeastPortals
 				foreach (var lb in entries)
 				{
 					var wr = mode[lb.DisplayName];
-					Console.WriteLine($"{lb.DisplayName} = {wr}");
-					
 					var page = await _client.GetLeaderboardAsync(_gameName, lb.Id);
+
+					// Check if we need a second page
+					if (page.Entries.Last().Score == wr)
+						Console.WriteLine($"[\"{lb.DisplayName}\"] = {wr},");
+					
+					//Console.WriteLine($"{lb.DisplayName} = {wr}");
 					foreach (var entry in page.Entries
 						.Where(entry => entry.Score >= wr))
 					{
@@ -118,6 +122,7 @@ namespace LeastPortals
 		public async Task Build(string file, int maxRank = 10)
 		{
 			if (File.Exists(file)) File.Delete(file);
+			var cache = new Dictionary<ulong, string>();
 
 			// Local function
 			async Task<List<string>> BuildRows(List<Player> source, Dictionary<string, int> mode)
@@ -134,7 +139,8 @@ namespace LeastPortals
 				foreach (var player in players)
 				{
 					// Get Steam profile to resolve name
-					var profile = await _client.GetProfileAsync(player.Id);
+					if (!cache.ContainsKey(player.Id))
+						cache.Add(player.Id, (await _client.GetProfileAsync(player.Id)).NameId);
 
 					if (current != player.Score)
 					{
@@ -143,14 +149,14 @@ namespace LeastPortals
 
 						current = player.Score;
 						span = players.Count(p => p.Score == current);
-						rows.Add(StartRow(rank, span, profile, player.Score, perfectscore));
+						rows.Add(StartRow(rank, span, player, cache[player.Id], perfectscore));
 					}
 					else
 					{
-						rows.Add(FillRow(profile, player.Score, perfectscore));
+						rows.Add(FillRow(player, cache[player.Id], perfectscore));
 					}
 
-					Console.WriteLine($"[{profile.Id}] {player.Score} by {profile.NameId}");
+					Console.WriteLine($"[{player.Id}] {player.Score} by {cache[player.Id]}");
 					await Task.Delay(1000);
 				}
 				return rows;
@@ -158,7 +164,7 @@ namespace LeastPortals
 
 			var sp = await BuildRows(_spPlayers, WorldRecords.SinglePlayer);
 			var mp = await BuildRows(_mpPlayers, WorldRecords.Cooperative);
-			
+
 			await File.WriteAllTextAsync(file, GetPage(sp, mp));
 		}
 
@@ -206,29 +212,34 @@ $@"<!DOCTYPE html>
 				</tbody>
 			</table>
 		</div>
-		<div>
-			<br><sup>1</sup> Excluding Fizzler Intro
+		<div align=""center"">
+			<br>
+			<br>
 			<br>Last Update: {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss '(UTC)'")}
-			<br><a href=""https://github.com/NeKzor/SteamCommunity.Net"">SteamCommunity.Net</a> example made by NeKz
+			<br>
+			<br>
+			<br><small><sup>1</sup> Excluding Jail Break, Neurotoxin Sabotage, Dual Lasers, Fizzler Intro, Laser Relays and Turret Intro</small>
 		</div>
 	</body>
 </html>";
 		}
-		private string StartRow(int rank, int rowSpan, IPublicProfile profile, int score, int possible)
+		private string StartRow(int rank, int rowSpan, Player player, string name, int possible)
 		{
+			var stats = (player.Score - possible != 0) ? $" ({possible}+{player.Score - possible})" : string.Empty;
 			return
 $@"					<tr>
 						<td rowspan=""{rowSpan}"">{rank}.</td>
-						<td><a href=""https://steamcommunity.com/profiles/{profile.Id}"">{profile.NameId}</a></td>
-						<td title=""{(int)(((double)possible / score) * 100)}% ({possible}+{possible - score})"">{score}</td>
+						<td><a href=""https://steamcommunity.com/profiles/{player.Id}"">{name}</a></td>
+						<td title=""{(int)(((double)possible / player.Score) * 100)}%{stats}"">{player.Score}</td>
 					</tr>";
 		}
-		private string FillRow(IPublicProfile profile, int score, int possible)
+		private string FillRow(Player player, string name, int possible)
 		{
+			var stats = (player.Score - possible != 0) ? $" ({possible}+{player.Score - possible})" : string.Empty;
 			return
 $@"					<tr>
-						<td><a href=""https://steamcommunity.com/profiles/{profile.Id}"">{profile.NameId}</a></td>
-						<td title=""{(int)(((double)possible / score) * 100)}% ({possible}+{possible - score})"">{score}</td>
+						<td><a href=""https://steamcommunity.com/profiles/{player.Id}"">{name}</a></td>
+						<td title=""{(int)(((double)possible / player.Score) * 100)}%{stats}"">{player.Score}</td>
 					</tr>";
 		}
 	}

@@ -63,18 +63,18 @@ namespace LeastPortals
 			["Future Starter: Portals"] = 3,
 			["Bridge Intro: Portals"] = 3,
 			["Bridge the Gap: Portals"] = 2,
-			["Jail Break: Portals"] = 2,
+			//["Jail Break: Portals"] = 2,
 			["Escape: Portals"] = 0,
 			["Turret Factory: Portals"] = 6,
-			["Turret Sabotage: Portals"] = 5,
-			["Neurotoxin Sabotage: Portals"] = 3,
+			["Turret Sabotage: Portals"] = 4,
+			//["Neurotoxin Sabotage: Portals"] = 3,
 			["Column Blocker: Portals"] = 2,
-			["Dual Lasers: Portals"] = 2,
+			//["Dual Lasers: Portals"] = 2,
 			//["Fizzler Intro: Portals"] = 2,
 			["Incinerator: Portals"] = 0,
 			["Laser Chaining: Portals"] = 2,
 			["Laser Over Goo: Portals"] = 0,
-			["Laser Relays: Portals"] = 2,
+			//["Laser Relays: Portals"] = 2,
 			["Laser Stairs: Portals"] = 2,
 			["Laser vs. Turret: Portals"] = 0,
 			["Pit Flings: Portals"] = 0,
@@ -84,7 +84,7 @@ namespace LeastPortals
 			["Triple Laser: Portals"] = 0,
 			["Trust Fling: Portals"] = 2,
 			["Turret Blocker: Portals"] = 0,
-			["Turret Intro: Portals"] = 0,
+			//["Turret Intro: Portals"] = 0,
 			["Underground: Portals"] = 4,
 			["Cave Johnson: Portals"] = 5,
 			["Bomb Flings: Portals"] = 3,
@@ -109,9 +109,17 @@ namespace LeastPortals
 			["Ceiling Button: Portals"] = 0,
 			["Wall Button: Portals"] = 2
 		};
+		// About 5k entries tied the record here
+		// Exclude them for now because they would
+		// need more than one API request
 		public static readonly Dictionary<string, int> Excluded = new Dictionary<string, int>()
 		{
-			["Fizzler Intro: Portals"] = 2
+			["Jail Break: Portals"] = 2,
+			["Neurotoxin Sabotage: Portals"] = 3,
+			["Dual Lasers: Portals"] = 2,
+			["Fizzler Intro: Portals"] = 2,
+			["Laser Relays: Portals"] = 2,
+			["Turret Intro: Portals"] = 0
 		};
 	}
 }

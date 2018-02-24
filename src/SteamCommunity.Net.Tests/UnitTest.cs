@@ -104,7 +104,7 @@ namespace SteamCommunity.Net.Tests
         }
 
 		[Fact]
-        public async void A()
+        public async void AlwaysPerfectGame()
         {
 			var client = new SteamCommunityClient(autoCache: false);
 			var stats = await client.GetStatsAsync(76561198049848090u, 620);
@@ -113,7 +113,7 @@ namespace SteamCommunity.Net.Tests
         }
 
 		[Fact]
-        public async void B()
+        public async void DunnoWhatThisEvenIs()
         {
 			var client = new SteamCommunityClient(autoCache: false);
 			var feed = await client.GetStatsFeedAsync(76561198049848090u, 620);
