@@ -2,10 +2,10 @@ using System.Collections.Generic;
 
 namespace SteamCommunity
 {
-	public interface IMemberList
+	public interface IGroup
 	{
 		ulong Id { get; }
-		IGroup Details { get; }
+		IGroupDetails Details { get; }
 		int MemberCount { get; }
 		int TotalPages { get; }
 		int CurrentPage { get; }

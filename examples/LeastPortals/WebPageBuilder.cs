@@ -73,11 +73,11 @@ namespace LeastPortals
 					foreach (var entry in page.Entries
 						.Where(entry => entry.Score >= wr))
 					{
-						if (!players.Any(p => p.Id == entry.SteamId))
+						if (!players.Any(p => p.Id == entry.Id))
 						{
 							players.Add(new Player()
 							{
-								Id = entry.SteamId,
+								Id = entry.Id,
 								Score = entry.Score,
 								Entries = 1
 							});
@@ -85,7 +85,7 @@ namespace LeastPortals
 						else
 						{
 							players
-								.First(p => p.Id == entry.SteamId)
+								.First(p => p.Id == entry.Id)
 								.Update(entry.Score);
 						}
 					}
@@ -140,7 +140,7 @@ namespace LeastPortals
 				{
 					// Get Steam profile to resolve name
 					if (!cache.ContainsKey(player.Id))
-						cache.Add(player.Id, (await _client.GetProfileAsync(player.Id)).NameId);
+						cache.Add(player.Id, (await _client.GetProfileAsync(player.Id)).Name);
 
 					if (current != player.Score)
 					{

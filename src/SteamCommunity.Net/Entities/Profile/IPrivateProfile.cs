@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace SteamCommunity
@@ -6,12 +7,12 @@ namespace SteamCommunity
 	{
 		string CustomUrl { get; }
 		string MemberSince { get; }
-		string HoursPlayedPastWeeks { get; }
+		float HoursPlayedPastWeeks { get; }
 		string Headline { get; }
 		string Location { get; }
 		string Realname { get; }
 		string Summary { get; }
 		IEnumerable<IMostPlayedGame> MostPlayedGames { get; }
-		IEnumerable<IGroup> Groups { get; }
+		IEnumerable<IGroupDetails> Groups { get; }
 	}
 }

@@ -2,7 +2,7 @@ namespace SteamCommunity
 {
 	public interface IGame
 	{
-		int Id { get; }
+		int AppId { get; }
 		string Name { get; }
 		string Logo { get; }
 		string StoreLink { get; }

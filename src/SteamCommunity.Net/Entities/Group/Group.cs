@@ -5,10 +5,10 @@ using Model = SteamCommunity.API.MemberListModel;
 
 namespace SteamCommunity
 {
-	public class MemberList : IMemberList
+	public class Group : IGroup
 	{
 		public ulong Id { get; private set; }
-		public IGroup Details { get; private set; }
+		public IGroupDetails Details { get; private set; }
 		public int MemberCount { get; private set; }
 		public int TotalPages { get; private set; }
 		public int CurrentPage { get; private set; }
@@ -18,29 +18,29 @@ namespace SteamCommunity
 
 		internal SteamCommunityClient Client { get; private set; }
 
-		public async Task<IMemberList> GetNextAsync(uint jumps = 1, bool ignoreCache = false)
+		public async Task<IGroup> GetNextAsync(uint jumps = 1, bool ignoreCache = false)
 		{
 			if (CurrentPage + jumps > TotalPages)
 				throw new InvalidOperationException("Invalid page jump.");
 			
-			return await Client.GetMemberListAsync(Id, (uint)CurrentPage + jumps, ignoreCache)
+			return await Client.GetGroup(Id, (uint)CurrentPage + jumps, ignoreCache)
 				.ConfigureAwait(false);
 		}
-		public async Task<IMemberList> GetPrevious(uint jumps = 1, bool ignoreCache = false)
+		public async Task<IGroup> GetPrevious(uint jumps = 1, bool ignoreCache = false)
 		{
 			if (CurrentPage - jumps < 1)
 				throw new InvalidOperationException("Invalid page jump.");
 			
-			return await Client.GetMemberListAsync(Id, (uint)CurrentPage - jumps, ignoreCache)
+			return await Client.GetGroup(Id, (uint)CurrentPage - jumps, ignoreCache)
 				.ConfigureAwait(false);
 		}
 
-		internal static MemberList Create(SteamCommunityClient client, Model model)
+		internal static Group Create(SteamCommunityClient client, Model model)
 		{
-			return new MemberList()
+			return new Group()
 			{
 				Id = model.GroupId64,
-				Details = Group.Create(client, model.GroupId64, model.GroupDetails),
+				Details = GroupDetails.Create(client, model.GroupId64, model.GroupDetails),
 				MemberCount = model.MemberCount,
 				TotalPages = model.TotalPages,
 				CurrentPage = model.CurrentPage,

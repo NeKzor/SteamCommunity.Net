@@ -2,8 +2,8 @@ namespace SteamCommunity
 {
 	public enum OnlineState
 	{
-		Online,
 		Offline,
+		Online,
 		InGame
 	}
 }

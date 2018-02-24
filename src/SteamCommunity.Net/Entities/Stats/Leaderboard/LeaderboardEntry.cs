@@ -4,7 +4,7 @@ namespace SteamCommunity
 {
 	public class LeaderboardEntry : ILeaderboardEntry
 	{
-		public ulong SteamId { get; private set; }
+		public ulong Id { get; private set; }
 		public int Score { get; private set; }
 		public int Rank { get; private set; }
 		public string UgcId { get; private set; }
@@ -14,7 +14,7 @@ namespace SteamCommunity
 		{
 			return new LeaderboardEntry()
 			{
-				SteamId = model.SteamId,
+				Id = model.SteamId,
 				Score = model.Score,
 				Rank = model.Rank,
 				UgcId = model.UgcId,

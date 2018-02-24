@@ -4,8 +4,8 @@ namespace SteamCommunity
 {
 	public interface IFriends
 	{
-		ulong SteamId64 { get; }
-		string SteamId { get; }
-		IEnumerable<ulong> Items { get; }
+		ulong Id { get; }
+		string Name { get; }
+		IEnumerable<ulong> List { get; }
 	}
 }

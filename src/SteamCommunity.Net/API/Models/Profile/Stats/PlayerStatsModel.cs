@@ -3,7 +3,7 @@ using System.Xml.Serialization;
 
 namespace SteamCommunity.API
 {
-	[XmlType("playerStats")]
+	[XmlType("playerstats")]
 	public class PlayerStatsModel
 	{
 		[XmlElement("privacyState")]
@@ -19,6 +19,6 @@ namespace SteamCommunity.API
 		[XmlElement("stats")]
 		public StatsModel Stats { get; set; }
 		[XmlArray("achievements")]
-		public IEnumerable<AchievementModel> Achievements { get; set; }
+		public List<AchievementModel> Achievements { get; set; }
 	}
 }

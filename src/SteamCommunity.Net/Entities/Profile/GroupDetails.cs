@@ -4,7 +4,7 @@ using Model2 = SteamCommunity.API.GroupDetailsModel;
 
 namespace SteamCommunity
 {
-	public class Group : IGroup
+	public class GroupDetails : IGroupDetails
 	{
 		public ulong Id { get; private set; }
 		public string Name { get; private set; }
@@ -21,13 +21,13 @@ namespace SteamCommunity
 
 		internal SteamCommunityClient Client { get; private set; }
 
-		public async Task<IMemberList> GetMemberListAsync(uint page = 1, bool ignoreCache = false)
-			=> await Client.GetMemberListAsync(Id, page, ignoreCache)
+		public async Task<IGroup> GetGroupAsync(uint page = 1, bool ignoreCache = false)
+			=> await Client.GetGroup(Id, page, ignoreCache)
 				.ConfigureAwait(false);
 
-		internal static Group Create(SteamCommunityClient client, Model model)
+		internal static GroupDetails Create(SteamCommunityClient client, Model model)
 		{
-			return new Group()
+			return new GroupDetails()
 			{
 				Id = model.GroupId64,
 				Name = model.GroupName,
@@ -44,9 +44,9 @@ namespace SteamCommunity
 				Client = client
 			};
 		}
-		internal static Group Create(SteamCommunityClient client, ulong groupId64, Model2 model)
+		internal static GroupDetails Create(SteamCommunityClient client, ulong groupId64, Model2 model)
 		{
-			return new Group()
+			return new GroupDetails()
 			{
 				Name = model.GroupName,
 				Url = model.GroupUrl,

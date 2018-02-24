@@ -219,44 +219,44 @@ namespace SteamCommunity
 			}
 			return result;
 		}
-		public async Task<IMemberList> GetMemberListAsync(ulong groupId, uint page = 1, bool ignoreCache = false)
+		public async Task<IGroup> GetGroup(ulong groupId, uint page = 1, bool ignoreCache = false)
 		{
-			var result = default(IMemberList);
+			var result = default(IGroup);
 			try
 			{
 				var get = $"/gid/{groupId}/memberslistxml?xml=1&p={page}";
 				var model = await GetCacheOrFetch<MemberListModel>(get, ignoreCache).ConfigureAwait(false);
-				result = await Task.Run(() => MemberList.Create(this, model)).ConfigureAwait(false);
+				result = await Task.Run(() => Group.Create(this, model)).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
 				if (Log != null)
-					await Log.Invoke(this, new LogMessage(typeof(IMemberList), ex)).ConfigureAwait(false);
+					await Log.Invoke(this, new LogMessage(typeof(IGroup), ex)).ConfigureAwait(false);
 			}
 			return result;
 		}
-		public async Task<IMemberList> GetMemberListAsync(string gropName, bool ignoreCache = false)
+		public async Task<IGroup> GetGroup(string gropName, bool ignoreCache = false)
 		{
-			var result = default(IMemberList);
+			var result = default(IGroup);
 			try
 			{
 				var get = $"/groups/{gropName}/memberslistxml?xml=1";
 				var model = await GetCacheOrFetch<MemberListModel>(get, ignoreCache).ConfigureAwait(false);
-				result = await Task.Run(() => MemberList.Create(this, model)).ConfigureAwait(false);
+				result = await Task.Run(() => Group.Create(this, model)).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
 				if (Log != null)
-					await Log.Invoke(this, new LogMessage(typeof(IMemberList), ex)).ConfigureAwait(false);
+					await Log.Invoke(this, new LogMessage(typeof(IGroup), ex)).ConfigureAwait(false);
 			}
 			return result;
 		}
-		public async Task<IStats> GetStatsAsync(ulong steamId64, int appId, bool ignoreCache = false)
+		public async Task<IStats> GetStatsAsync(ulong steamId64, string appName, bool ignoreCache = false)
 		{
 			var result = default(IStats);
 			try
 			{
-				var get = $"/profiles/{steamId64}/stats/{appId}?xml=1";
+				var get = $"/profiles/{steamId64}/stats/{appName.Replace(" ", string.Empty)}?xml=1";
 				var model = await GetCacheOrFetch<PlayerStatsModel>(get, ignoreCache).ConfigureAwait(false);
 				result = await Task.Run(() => Stats.Create(this, model)).ConfigureAwait(false);
 			}
@@ -267,12 +267,12 @@ namespace SteamCommunity
 			}
 			return result;
 		}
-		public async Task<IStats> GetStatsAsync(string steamId, int appId, bool ignoreCache = false)
+		public async Task<IStats> GetStatsAsync(string steamId, string appName, bool ignoreCache = false)
 		{
 			var result = default(IStats);
 			try
 			{
-				var get = $"/id/{steamId}/stats/{appId}?xml=1";
+				var get = $"/id/{steamId}/stats/{appName.Replace(" ", string.Empty)}?xml=1";
 				var model = await GetCacheOrFetch<PlayerStatsModel>(get, ignoreCache).ConfigureAwait(false);
 				result = await Task.Run(() => Stats.Create(this, model)).ConfigureAwait(false);
 			}

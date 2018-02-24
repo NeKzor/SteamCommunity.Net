@@ -3,7 +3,7 @@ namespace SteamCommunity
 	public interface IPublicProfile
 	{
 		ulong Id { get; }
-		string NameId { get; }
+		string Name { get; }
 		OnlineState State { get; }
 		string StateMessage { get; }
 		PrivacyState Privacy { get; }

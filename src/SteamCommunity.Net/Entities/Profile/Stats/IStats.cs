@@ -4,10 +4,10 @@ namespace SteamCommunity
 {
 	public interface IStats
 	{
-		string PrivacyState { get; }
+		ulong Id { get; }
+		PrivacyState PrivacyState { get; }
 		int VisibilityState { get; }
 		IStatsGame Game { get; }
-		ulong SteamId64 { get; }
 		string CustomUrl { get; }
 		IStatsBase Info { get; }
 		IEnumerable<IAchievement> Achievements { get; }

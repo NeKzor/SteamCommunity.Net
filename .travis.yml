@@ -7,5 +7,5 @@ script:
   - dotnet restore src/SteamCommunity.Net.Tests/
   - dotnet restore examples/LeastPortals/
   - dotnet build src/SteamCommunity.Net/ -c Release
-#  - dotnet test src/SteamCommunity.Net.Tests/ -c Release
+  - dotnet test src/SteamCommunity.Net.Tests/ -c Release
   - dotnet build examples/LeastPortals/ -c Release

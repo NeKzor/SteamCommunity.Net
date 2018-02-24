@@ -2,11 +2,11 @@ namespace SteamCommunity
 {
 	public interface IStatsGame
 	{
-		string GameFriendlyName { get; }
-		string GameName { get; }
-		string GameLink { get; }
-		string GameIcon { get; }
-		string GameLogo { get; }
-		string GameLogoSmall { get; }
+		string FriendlyName { get; }
+		string Name { get; }
+		string Link { get; }
+		string Icon { get; }
+		string Logo { get; }
+		string LogoSmall { get; }
 	}
 }

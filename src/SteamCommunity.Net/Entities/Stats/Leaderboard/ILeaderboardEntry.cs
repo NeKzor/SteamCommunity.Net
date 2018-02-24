@@ -2,7 +2,7 @@ namespace SteamCommunity
 {
 	public interface ILeaderboardEntry
 	{
-		ulong SteamId { get; }
+		ulong Id { get; }
 		int Score { get; }
 		int Rank { get; }
 		string UgcId { get; }

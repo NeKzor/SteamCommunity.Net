@@ -5,7 +5,7 @@ namespace SteamCommunity
 	public interface IGameList
 	{
 		ulong Id { get; }
-		string ProfileName { get; }
+		string Name { get; }
 		IEnumerable<IGame> Games { get; }
 	}
 }

@@ -1,6 +1,6 @@
 namespace SteamCommunity
 {
-	public interface IGroup
+	public interface IGroupDetails
 	{
 		ulong Id { get; }
 		string Name { get; }

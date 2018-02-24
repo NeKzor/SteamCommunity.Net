@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Model = SteamCommunity.API.StatsFeedModel;
 
 namespace SteamCommunity
@@ -10,6 +11,10 @@ namespace SteamCommunity
 		public IEnumerable<IStatsFeedEntry> Achievements { get; private set; }
 
 		internal SteamCommunityClient Client { get; private set; }
+
+		public async Task<IPublicProfile> GetProfileAsync(bool ignoreCache = false)
+			=> await Client.GetProfileAsync(Id, ignoreCache)
+				.ConfigureAwait(false);
 
 		internal static StatsFeed Create(SteamCommunityClient client, Model model)
 		{
