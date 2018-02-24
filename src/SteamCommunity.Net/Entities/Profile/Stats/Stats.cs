@@ -32,7 +32,7 @@ namespace SteamCommunity
 			
 			return new Stats()
 			{
-				PrivacyState = (PrivacyState)Enum.Parse(typeof(PrivacyState), model.PrivacyState),
+				PrivacyState = (PrivacyState)Enum.Parse(typeof(PrivacyState), model.PrivacyState, true),
 				VisibilityState = model.VisibilityState,
 				Game = StatsGame.Create(model.Game),
 				Id = model.SteamId64,
