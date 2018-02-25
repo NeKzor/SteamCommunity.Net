@@ -12,10 +12,8 @@ namespace SteamCommunity.API
 		public int VisibilityState { get; set; }
 		[XmlElement("game")]
 		public PlayerStatsGameModel Game { get; set; }
-		[XmlElement("steamID64")]
-		public ulong SteamId64 { get; set; }
-		[XmlElement("customURL")]
-		public string CustomUrl { get; set; }
+		[XmlElement("player")]
+		public PlayerStatsPlayerModel Player { get; set; }
 		[XmlElement("stats")]
 		public StatsModel Stats { get; set; }
 		[XmlArray("achievements")]
