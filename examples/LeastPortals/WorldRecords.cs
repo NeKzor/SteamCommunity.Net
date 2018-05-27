@@ -53,12 +53,12 @@ namespace LeastPortals
 			["02 Bridge Swap: Portals"] = 3,
 			["08 Bridge Testing: Portals"] = 0,
 			["04 Catapult Block: Portals"] = 4, // ~200
-			["01 Cooperative Bridges: Portals"] = 3, // ~500
+			["01 Cooperative Bridges: Portals"] = 3 // ~500
 		};
 		public static readonly Dictionary<string, int> SinglePlayer = new Dictionary<string, int>()
 		{
 			["Portal Gun: Portals"] = 0,
-			["Smooth Jazz: Portals"] = 1,
+			//["Smooth Jazz: Portals"] = 1,
 			["Cube Momentum: Portals"] = 1,
 			["Future Starter: Portals"] = 3,
 			["Bridge Intro: Portals"] = 3,
@@ -72,7 +72,7 @@ namespace LeastPortals
 			//["Dual Lasers: Portals"] = 2,
 			//["Fizzler Intro: Portals"] = 2,
 			["Incinerator: Portals"] = 0,
-			["Laser Chaining: Portals"] = 2,
+			["Laser Chaining: Portals"] = 0,
 			["Laser Over Goo: Portals"] = 0,
 			//["Laser Relays: Portals"] = 2,
 			["Laser Stairs: Portals"] = 2,
@@ -114,6 +114,7 @@ namespace LeastPortals
 		// need more than one API request
 		public static readonly Dictionary<string, int> Excluded = new Dictionary<string, int>()
 		{
+			["Smooth Jazz: Portals"] = 1,
 			["Jail Break: Portals"] = 2,
 			["Neurotoxin Sabotage: Portals"] = 3,
 			["Dual Lasers: Portals"] = 2,

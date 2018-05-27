@@ -73,7 +73,9 @@ namespace SteamCommunity
 				IsLimitedAccount = model.IsLimitedAccount != 0,
 				CustomUrl = model.CustomUrl,
 				MemberSince = model.MemberSince,
-				HoursPlayedPastWeeks = float.Parse(model.HoursPlayed2Wk),
+				HoursPlayedPastWeeks = (!string.IsNullOrEmpty(model.HoursPlayed2Wk))
+					? float.Parse(model.HoursPlayed2Wk)
+					: 0f,
 				Headline = model.Headline,
 				Location = model.Location,
 				Realname = model.Realname,
