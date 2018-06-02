@@ -1,18 +1,25 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace LeastPortals
 {
     internal class Program
     {
-		private static void Main(string[] args)
+		private static async Task Main(string[] args)
 		{
-			var builder = new WebPageBuilder("Portal 2");
+			var builder = new WebPageBuilder("LeastPortals/2.0");
 
-			//builder.Initialize().GetAwaiter().GetResult();
-			//builder.Export().GetAwaiter().GetResult();
+			//await builder.Initialize();
+			//await builder.Export("gh-pages/unfiltered.json");
+			//await builder.Filter();
+			//await builder.Export("gh-pages/players.json");
 
-			builder.Import().GetAwaiter().GetResult();
-			builder.Build("gh-pages/lp.html").GetAwaiter().GetResult();
+			//await builder.Import("gh-pages/unfiltered.json");
+			//await builder.Filter();
+			//await builder.Export("gh-pages/players.json");
+
+			await builder.Import("gh-pages/players.json");
+			await builder.Build("gh-pages/lp.html", 20);
 		}
     }
 }
