@@ -238,6 +238,18 @@ namespace LeastPortals
 				}
 				return Task.FromResult(rows);
 			}
+			// Local function 3
+			Task<List<string>> BuildRecordRows()
+			{
+				var rows = new List<string>();
+				foreach (var map in Portal2.CampaignMaps.Where(m => m.IsOfficial))
+				{
+					var record = _wrs.First(m => m.Id == map.BestPortalsId);
+					if (record.WorldRecord != default)
+						rows.Add(FillRecordRow(record));
+				}
+				return Task.FromResult(rows);
+			}
 
 			var maxsp = _wrs
 				.Where(x => x.Mode == Portal2MapType.SinglePlayer)
@@ -249,15 +261,17 @@ namespace LeastPortals
 			var sp = await BuildRows(_players.Where(p => p.IsSinglePlayer), (int)maxsp, Portal2MapType.SinglePlayer);
 			var mp = await BuildRows(_players.Where(p => p.IsCooperative), (int)maxmp, Portal2MapType.Cooperative);
 			var ov = await BuildRows(_players.Where(p => p.IsOverall), (int)(maxsp + maxmp), Portal2MapType.Unknown);
+			var rc = await BuildRecordRows();
 			var pr = await BuildProfileRows(_players.Where(x => cache.ContainsKey(x.Id)));
 
-			await File.WriteAllTextAsync(file, GetPage(sp, mp, ov, pr));
+			await File.WriteAllTextAsync(file, GetPage(sp, mp, ov, rc, pr));
 		}
 
 		private string GetPage(
 			IEnumerable<string> singlePlayerRows,
 			IEnumerable<string> cooperativeRows,
 			IEnumerable<string> overallRows,
+			IEnumerable<string> recordRows,
 			IEnumerable<string> profileRows)
 		{
 			return
@@ -268,6 +282,8 @@ $@"<!DOCTYPE html>
 		<link href=""https://fonts.googleapis.com/css?family=Roboto"" rel=""stylesheet"">
 		<link href=""https://fonts.googleapis.com/icon?family=Material+Icons"" rel=""stylesheet"">
 		<link href=""https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.4/css/materialize.min.css"" rel=""stylesheet"">
+		<meta name=""viewport"" content=""width=device-width, initial-scale=1.0"" />
+		<style>.link {{ color: white }} .link:hover {{ color: aquamarine }} .steam-link {{ color: white }} .steam-link:hover {{ color: black }}</style>
 	</head>
 	<body class=""white-text blue-grey darken-4"">
 		<nav class=""nav-extended blue-grey darken-3"">
@@ -286,6 +302,8 @@ $@"<!DOCTYPE html>
 					<li class=""tab""><a href=""#sp"">Single Player</a></li>
 					<li class=""tab""><a href=""#mp"">Cooperative</a></li>
 					<li class=""tab""><a href=""#all"">Overall</a></li>
+					<li class=""tab""><a href=""#records"">Records</a></li>
+					<li class=""tab""><a href=""#about"">About</a></li>
 				</ul>
 			</div>
 		</nav>
@@ -293,67 +311,115 @@ $@"<!DOCTYPE html>
 			<li><a href=""index.html"">nekzor.github.io</a></li>
 			<li><a href=""lp.html"">Least Portals</a></li>
 		</ul>
-		<div id=""sp"" class=""row"">
-			<div class=""col s10 push-s1"">
-				<table class=""highlight"">
-					<thead>
-						<tr>
-							<th>Player</th>
-							<th>Portals<sup>1</sup></th>
-						</tr>
-					</thead>
-					<tbody>
+		<div id=""sp"">
+			<div class=""row"">
+				<div class=""col s12 m12 l8 push-l2"">
+					<table class=""highlight"">
+						<thead>
+							<tr>
+								<th>Player</th>
+								<th>Portals<sup>1</sup></th>
+							</tr>
+						</thead>
+						<tbody>
 {string.Join("\n", singlePlayerRows)}
-					</tbody>
-				</table>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class=""row"">
+				<div class=""col s12"" align=""center"">
+					<small><sup>1</sup> Excluding Smooth Jazz, Jail Break, Neurotoxin Sabotage, Dual Lasers, Fizzler Intro, Laser Relays and Turret Intro</small>
+				</div>
 			</div>
 		</div>
-		<div id=""mp"" class=""row"">
-			<div class=""col s10 push-s1"">
-				<table class=""highlight"">
-					<thead>
-						<tr>
-							<th>Player</th>
-							<th>Portals</th>
-						</tr>
-					</thead>
-					<tbody>
+		<div id=""mp"">
+			<div class=""row"">
+				<div class=""col s12 m12 l8 push-l2"">
+					<table class=""highlight"">
+						<thead>
+							<tr>
+								<th>Player</th>
+								<th>Portals</th>
+							</tr>
+						</thead>
+						<tbody>
 {string.Join("\n", cooperativeRows)}
-					</tbody>
-				</table>
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</div>
-		<div id=""all"" class=""row"">
-			<div class=""col s10 push-s1"">
-				<table class=""highlight"">
-					<thead>
-						<tr>
-							<th>Player</th>
-							<th>Portals<sup>1</sup></th>
-						</tr>
-					</thead>
-					<tbody>
+		<div id=""all"">
+			<div class=""row"">
+				<div class=""col s12 m12 l8 push-l2"">
+					<table class=""highlight"">
+						<thead>
+							<tr>
+								<th>Player</th>
+								<th>Portals</th>
+							</tr>
+						</thead>
+						<tbody>
 {string.Join("\n", overallRows)}
-					</tbody>
-				</table>
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</div>
-		<div align=""center"">
-			<br>
-			<br>
-			<br>Last Update: {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss '(UTC)'")}
-			<br>
-			<br>
-			<br><small><sup>1</sup> Excluding Smooth Jazz, Jail Break, Neurotoxin Sabotage, Dual Lasers, Fizzler Intro, Laser Relays and Turret Intro</small>
+		<div id=""records"">
+			<div class=""row"">
+				<div class=""col s12 m12 l8 push-l2"">
+					<table class=""highlight"">
+						<thead>
+							<tr>
+								<th>Map</th>
+								<th>Portals</th>
+								<th>Video</th>
+							</tr>
+						</thead>
+						<tbody>
+{string.Join("\n", recordRows)}
+						</tbody>
+					</table>
+				</div>
+			</div>
 		</div>
+		<div id=""about"">
+			<div class=""row""></div>
+			<div class=""row"">
+				<div class=""col s12 m12 l8 push-l2"">
+					<h3>Who's the lp king?</h3>
+					<p>
+						This leaderboard includes all legit players who care about least portal records in Portal 2.
+					</p>
+					<br>
+					<h6>How it works:</h6>
+					<p>
+						- Page generator will fetch 5k entries per leaderboard due to the limit for one API call.
+					</p>
+					<p>
+						- Some leaderboards are excluded because more than 5k players tied the world record.
+					</p>
+					<p>
+						- Users who tied the world record will be prioritized and cheaters who have invalid scores will be ignored.
+					</p>
+					<br>
+					<h6>Made with <a class=""link"" href=""https://github.com/NeKzor/SteamCommunity.Net"">SteamCommunity.Net</a></h6>
+					<br>
+					<h6>Last Update: {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss '(UTC)'")}</h6>
+				</div>
+			</div>
+		</div>
+		<div id=""profiles"">
 {string.Join("\n", profileRows)}
+		</div>
 		<script src=""https://code.jquery.com/jquery-3.3.1.min.js"" integrity=""sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="" crossorigin=""anonymous""></script>
 		<script src=""https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.4/js/materialize.min.js""></script>
 		<script>
 			$(document).ready(function(){{
 				$('.tabs').tabs();
 				$('.sidenav').sidenav();
-				$('.tooltipped').tooltip();
 				$('.modal').modal();
 			}});
 		</script>
@@ -364,13 +430,13 @@ $@"<!DOCTYPE html>
 		{
 			var stats = (player.GetTotalScore(mode) - possible != 0) ? $" ({possible}+{player.GetTotalScore(mode) - possible})" : string.Empty;
 			return
-$@"						<tr class=""white-text tooltipped modal-trigger"" href=""#{profile.Id}"" data-position=""left"" data-tooltip=""#{rank}"">
-							<td class=""valign-wrapper"">
-								<img class=""circle responsive-img"" src=""{profile.AvatarIcon}"">
-								&nbsp;&nbsp;&nbsp;{profile.Name}
-							</td>
-							<td title=""{(int)(((double)possible / player.GetTotalScore(mode)) * 100)}%{stats}"">{player.GetTotalScore(mode)}</td>
-						</tr>";
+$@"							<tr class=""white-text modal-trigger"" href=""#{profile.Id}"">
+								<td class=""valign-wrapper"">
+									<img class=""circle responsive-img"" src=""{profile.AvatarIcon}"">
+									&nbsp;&nbsp;&nbsp;{profile.Name}
+								</td>
+								<td title=""{(int)(((double)possible / player.GetTotalScore(mode)) * 100)}%{stats}"">{player.GetTotalScore(mode)}</td>
+							</tr>";
 		}
 		private string FillProfileRow(Player player, IPublicProfile profile)
 		{
@@ -381,40 +447,52 @@ $@"						<tr class=""white-text tooltipped modal-trigger"" href=""#{profile.Id}"
 				var delta = (entry.Score - map.WorldRecord) ?? 0;
 				rows.Add
 				(
-$@"								<tr>
-									<th>{map.Name}</th>
-									<th>{((entry.Score == default) ? "-" : $"{entry.Score}")}</th>
-									<th>{((delta == 0) ? "-" : $"+{delta}")}</th>
-								</tr>"
-				);
-			}
+$@"									<tr>
+										<th>{map.Name}</th>
+										<th>{((entry.Score == default) ? "-" : $"{entry.Score}")}</th>
+										<th>{((delta == 0) ? "-" : $"+{delta}")}</th>
+									</tr>"
+					);
+				}
 
 			return
-$@"		<div id=""{profile.Id}"" class=""modal blue-grey darken-3"">
-			<div class=""modal-content"">
-				<div class=""valign-wrapper"">
-					<img class=""circle responsive-img"" src=""{profile.AvatarIcon}"">
-					<a class=""white-text"" href=""https://steamcommunity.com/profiles/{profile.Id}"">&nbsp;&nbsp;&nbsp;{profile.Name}</a></td>
-				</div>
-				<br>
-				<div class=""row"">
-					<div class=""col s10 push-s1"">
-						<table class=""highlight"">
-							<thead>
-								<tr>
-									<th>Map</th>
-									<th>Portals</th>
-									<th>ΔWR</th>
-								</tr>
-							</thead>
-							<tbody>
+$@"			<div id=""{profile.Id}"" class=""modal blue-grey darken-3"">
+				<div class=""modal-content"">
+					<div class=""valign-wrapper"">
+						<img class=""circle responsive-img"" src=""{profile.AvatarIcon}"">
+						<a class=""white-text"" href=""https://steamcommunity.com/profiles/{profile.Id}"">&nbsp;&nbsp;&nbsp;{profile.Name}</a></td>
+					</div>
+					<br>
+					<div class=""row"">
+						<div class=""col s10 push-s1"">
+							<table class=""highlight"">
+								<thead>
+									<tr>
+										<th>Map</th>
+										<th>Portals</th>
+										<th>ΔWR</th>
+									</tr>
+								</thead>
+								<tbody>
 {string.Join("\n", rows)}
-							</tbody>
-						</table>
+								</tbody>
+							</table>
+						</div>
 					</div>
 				</div>
-			</div>
-		</div>";
+			</div>";
+		}
+		private string FillRecordRow(Map map)
+		{
+			var youtube = "https://www.youtube.com/results?search_query=Portal+2+"
+				+ map.Name.Replace(' ', '+')
+				+ "+in+" + map.WorldRecord + "+Portal" + ((map.WorldRecord == 1) ? string.Empty : "s");
+			return
+$@"									<tr>
+										<th><a class=""steam-link"" href=""https://steamcommunity.com/stats/Portal2/leaderboards/{map.Id}"">{map.Name}</a></th>
+										<th>{map.WorldRecord}</th>
+										<th><a class=""btn-floating waves-effect waves-light red"" title=""Search Record on YouTube"" href=""{youtube}"" target=""_blank""><i class=""material-icons"">play_arrow</i></a></td></th>
+									</tr>";
 		}
 	}
 }
