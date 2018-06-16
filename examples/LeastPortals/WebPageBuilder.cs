@@ -98,8 +98,8 @@ namespace LeastPortals
 				var before = _players.Count;
 				if (mode == Portal2MapType.SinglePlayer)
 					_players.RemoveAll(p => !p.IsSinglePlayer);
-				else if (mode == Portal2MapType.Cooperative)
-					_players.RemoveAll(p => !p.IsCooperative);
+				else
+					_players.RemoveAll(p => !p.IsSinglePlayer && !p.IsCooperative);
 				var after = _players.Count;
 
 				Console.WriteLine($"Filtered {after} from {before} players.");

@@ -24,7 +24,7 @@ namespace SteamCommunity.Net.Tests
 			return Task.CompletedTask;
 		}
 
-        [Fact]
+        /* [Fact]
         public async void WannaBeFriendsQuestionmark()
         {
 			var friends = await _client.GetFriendsAsync(76561198049848090u);
@@ -33,7 +33,7 @@ namespace SteamCommunity.Net.Tests
 			Assert.True(friends.Id == 76561198049848090u);
 			Assert.True(friends.Name == "NeKz");
 			Assert.True(friends.List.Count() > 0);
-        }
+        } */
 
 		[Fact]
         public async void WasteMoneyOnVideoGames()
