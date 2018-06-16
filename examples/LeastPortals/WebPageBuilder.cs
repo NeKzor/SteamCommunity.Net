@@ -9,107 +9,18 @@ using Portal2Boards.Extensions;
 
 namespace LeastPortals
 {
-	internal class Map
-	{
-		[JsonProperty("id")]
-		public ulong Id { get; set; }
-		[JsonProperty("name")]
-		public string Name { get; set; }
-		[JsonProperty("mode")]
-		public Portal2MapType Mode { get; set; }
-		[JsonProperty("wr")]
-		public int? WorldRecord { get; set; }
-	}
-
-	internal class ScoreEntry
-	{
-		[JsonProperty("id")]
-		public ulong Id { get; set; }
-		[JsonProperty("mode")]
-		public Portal2MapType Mode { get; set; }
-		[JsonProperty("score")]
-		public int? Score { get; set; }
-	}
-
-	internal class Player
-	{
-		[JsonProperty("id")]
-		public ulong Id { get; set; }
-		[JsonProperty("entries")]
-		public List<ScoreEntry> Entries { get; set; }
-
-		[JsonIgnore]
-		private int _singlePlayerScore { get; set; }
-		[JsonIgnore]
-		private int _cooperativeScore { get; set; }
-		[JsonIgnore]
-		private int _totalScore => _singlePlayerScore + _cooperativeScore;
-
-		[JsonIgnore]
-		public bool IsSinglePlayer => _singlePlayerScore != default;
-		[JsonIgnore]
-		public bool IsCooperative => _cooperativeScore != default;
-		[JsonIgnore]
-		public bool IsOverall => IsSinglePlayer && IsCooperative;
-
-		public Player()
-		{
-			Entries = new List<ScoreEntry>();
-		}
-
-		public Player(ulong id, IEnumerable<ulong> excluded)
-		{
-			Id = id;
-			Entries = new List<ScoreEntry>();
-			foreach (var map in Portal2.CampaignMaps
-				.Where(x => x.IsOfficial)
-				.Where(x => !excluded.Contains((ulong)x.BestPortalsId)))
-			{
-				Entries.Add(new ScoreEntry()
-				{
-					Id = (ulong)map.BestPortalsId,
-					Mode = map.Type
-				});
-			}
-		}
-
-		public void Update(int id, int score)
-		{
-			Entries.First(x => x.Id == (ulong)id).Score = score;
-		}
-		public void CalculateTotalScore()
-		{
-			var sp = Entries.Where(e => e.Mode == Portal2MapType.SinglePlayer);
-			var mp = Entries.Where(e => e.Mode == Portal2MapType.Cooperative);
-
-			if (!sp.Any(x => x.Score == default))
-				_singlePlayerScore = (int)sp.Sum(e => e.Score);
-			if (!mp.Any(x => x.Score == default))
-				_cooperativeScore = (int)mp.Sum(e => e.Score);
-		}
-		public int GetTotalScore(Portal2MapType mode)
-		{
-			switch (mode)
-			{
-				case Portal2MapType.SinglePlayer:
-					return _singlePlayerScore;
-				case Portal2MapType.Cooperative:
-					return _cooperativeScore;
-			}
-			return _singlePlayerScore + _cooperativeScore;
-		}
-	}
-
 	internal class WebPageBuilder
 	{
 		private List<Map> _wrs;
 		private List<Player> _players;
+		private Statistics _stats;
 
 		private readonly SteamCommunityClient _client;
 
 		public WebPageBuilder(string userAgent)
 		{
 			_players = new List<Player>();
+			_stats = new Statistics();
 
 			_client = new SteamCommunityClient(userAgent, false);
 			_client.Log += Logger.LogSteamCommunityClient;
@@ -132,67 +43,87 @@ namespace LeastPortals
 				.Where(lb => !excluded.Contains((ulong)lb.Id));
 
 			// Local function
-			async Task GetPlayers(IEnumerable<IStatsLeaderboardEntry> entries, Portal2MapType mode)
+			async Task GetPlayers(IEnumerable<IStatsLeaderboardEntry> leaderboards, Portal2MapType mode)
 			{
-				foreach (var lb in entries)
+				var current = 1;
+				var total = leaderboards.Count();
+
+				foreach (var lb in leaderboards)
 				{
 					var wr = _wrs
 						.Where(x => x.Mode == mode)
 						.First(x => x.Id == (ulong)lb.Id).WorldRecord;
 
-					var page = await _client.GetLeaderboardAsync("Portal 2", lb.Id);
+					var cache = $"gh-pages/cache/{lb.Id}.json";
+					var entries = new List<CacheItem>();
+					if (!File.Exists(cache))
+					{
+						var page = await _client.GetLeaderboardAsync("Portal 2", lb.Id);
+						foreach (var entry in page.Entries)
+							entries.Add(new CacheItem(){ Id = entry.Id, Score = entry.Score });
+						await File.WriteAllTextAsync(cache, JsonConvert.SerializeObject(entries));
+						await Task.Delay(1000);
+						Console.Write("[NEW] ");
+					}
+					else
+					{
+						entries = JsonConvert.DeserializeObject<List<CacheItem>>(await File.ReadAllTextAsync(cache));
+						Console.Write("[CACHE] ");
+					}
 
 					// Check if we need a second page
-					if (page.Entries.Last().Score == wr)
-						Console.Write("[X] ");
-					Console.WriteLine($"[\"{lb.DisplayName}\"] = {wr},");
+					if (entries.Last().Score == wr)
+						Console.Write(" !!! ");
 
-					foreach (var entry in page.Entries
-						.Where(entry => entry.Score >= wr))
+					var ties = entries.Count(entry => entry.Score == wr);
+					Console.WriteLine($"[{lb.Id}] {lb.DisplayName} -> {ties} ({current}/{total})");
+
+					_stats.SetRecordCount((ulong)lb.Id, ties);
+
+					foreach (var entry in entries.Where(entry => entry.Score >= wr))
 					{
-						if (!_players.Any(p => p.Id == entry.Id))
-							_players.Add(new Player(entry.Id, excluded));
+						var player = _players.FirstOrDefault(p => p.Id == entry.Id);
+						if (player == null)
+							_players.Add(player = new Player(entry.Id, excluded));
 
-						_players
-							.First(p => p.Id == entry.Id)
-							.Update(lb.Id, entry.Score);
+						player.Update(lb.Id, entry.Score);
 					}
-					await Task.Delay(1000);
+					current++;
 				}
+
+				// Filter
+				foreach (var player in _players)
+					player.CalculateTotalScore(mode);
+
+				var before = _players.Count;
+				if (mode == Portal2MapType.SinglePlayer)
+					_players.RemoveAll(p => !p.IsSinglePlayer);
+				else if (mode == Portal2MapType.Cooperative)
+					_players.RemoveAll(p => !p.IsCooperative);
+				var after = _players.Count;
+
+				Console.WriteLine($"Filtered {after} from {before} players.");
+				Console.WriteLine();
 			}
 
 			await GetPlayers(sp, Portal2MapType.SinglePlayer);
 			await GetPlayers(mp, Portal2MapType.Cooperative);
 		}
-		public Task Filter()
-		{
-			foreach (var player in _players)
-				player.CalculateTotalScore();
-
-			var before = _players.Count;
-			_players.RemoveAll(p => !p.IsSinglePlayer && !p.IsCooperative);
-			var after = _players.Count;
-
-			Console.WriteLine($"Filtered {after} from {before} players.");
-			Console.WriteLine();
-			return Task.CompletedTask;
-		}
-		public async Task Export(string file)
+		public async Task Export(string file, string statsFile = "gh-pages/stats.json")
 		{
 			if (File.Exists(file)) File.Delete(file);
 			await File.WriteAllTextAsync(file, JsonConvert.SerializeObject(_players));
+			await _stats.Export(statsFile);
 		}
-		public async Task Import(string file)
+		public async Task Import(string file, string statsFile = "gh-pages/stats.json")
 		{
 			if (!File.Exists(file)) return;
 			_players = JsonConvert.DeserializeObject<List<Player>>(await File.ReadAllTextAsync(file));
+			await _stats.Import(statsFile);
 		}
 		public async Task Build(string file, int maxRank = 10)
 		{
 			if (File.Exists(file)) File.Delete(file);
-
-			foreach (var player in _players)
-				player.CalculateTotalScore();
 
 			var cache = new Dictionary<ulong, IPublicProfile>();
 			var profilecache = new List<ulong>();
@@ -246,7 +177,7 @@ namespace LeastPortals
 				{
 					var record = _wrs.First(m => m.Id == map.BestPortalsId);
 					if (record.WorldRecord != default)
-						rows.Add(FillRecordRow(record));
+						rows.Add(FillRecordRow(record, _stats.GetRecordCount(record.Id)));
 				}
 				return Task.FromResult(rows);
 			}
@@ -375,6 +306,7 @@ $@"<!DOCTYPE html>
 							<tr>
 								<th>Map</th>
 								<th>Portals</th>
+								<th>Ties</th>
 								<th>Video</th>
 							</tr>
 						</thead>
@@ -482,7 +414,7 @@ $@"			<div id=""{profile.Id}"" class=""modal blue-grey darken-3"">
 				</div>
 			</div>";
 		}
-		private string FillRecordRow(Map map)
+		private string FillRecordRow(Map map, int ties)
 		{
 			var youtube = "https://www.youtube.com/results?search_query=Portal+2+"
 				+ map.Name.Replace(' ', '+')
@@ -491,6 +423,7 @@ $@"			<div id=""{profile.Id}"" class=""modal blue-grey darken-3"">
 $@"									<tr>
 										<th><a class=""steam-link"" href=""https://steamcommunity.com/stats/Portal2/leaderboards/{map.Id}"">{map.Name}</a></th>
 										<th>{map.WorldRecord}</th>
+										<th>{ties}</th>
 										<th><a class=""btn-floating waves-effect waves-light red"" title=""Search Record on YouTube"" href=""{youtube}"" target=""_blank""><i class=""material-icons"">play_arrow</i></a></td></th>
 									</tr>";
 		}
