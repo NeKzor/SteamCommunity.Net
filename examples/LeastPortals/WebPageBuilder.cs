@@ -42,6 +42,8 @@ namespace LeastPortals
 				.Where(lb => lb.Name.StartsWith("challenge_portals_mp"))
 				.Where(lb => !excluded.Contains((ulong)lb.Id));
 
+			var cheaters = new Dictionary<ulong, object>();
+
 			// Local function
 			async Task GetPlayers(IEnumerable<IStatsLeaderboardEntry> leaderboards, Portal2MapType mode)
 			{
@@ -80,8 +82,14 @@ namespace LeastPortals
 
 					_stats.SetRecordCount((ulong)lb.Id, ties);
 
+					foreach (var cheater in entries.Where(entry => entry.Score < wr))
+						cheaters.TryAdd(cheater.Id, null);
+
 					foreach (var entry in entries.Where(entry => entry.Score >= wr))
 					{
+						if (cheaters.TryGetValue(entry.Id, out _))
+							continue;
+
 						var player = _players.FirstOrDefault(p => p.Id == entry.Id);
 						if (player == null)
 							_players.Add(player = new Player(entry.Id, excluded));
@@ -90,6 +98,8 @@ namespace LeastPortals
 					}
 					current++;
 				}
+
+				_players.RemoveAll(p => cheaters.ContainsKey(p.Id));
 
 				// Filter
 				foreach (var player in _players)

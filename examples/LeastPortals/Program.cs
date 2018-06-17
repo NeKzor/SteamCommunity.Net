@@ -9,10 +9,10 @@ namespace LeastPortals
 		{
 			var builder = new WebPageBuilder("LeastPortals/2.1");
 
-			//await builder.Initialize();
-			//await builder.Export("gh-pages/players.json");
+			await builder.Initialize();
+			await builder.Export("gh-pages/players.json");
 
-			await builder.Import("gh-pages/players.json");
+			//await builder.Import("gh-pages/players.json");
 			await builder.Build("gh-pages/lp.html", 20);
 		}
     }
