@@ -30,11 +30,9 @@ namespace LeastPortals
 		{
 			Entries = new List<ScoreEntry>();
 		}
-
-		public Player(ulong id, IEnumerable<ulong> excluded)
+		public Player(ulong id, IEnumerable<ulong> excluded) : this()
 		{
 			Id = id;
-			Entries = new List<ScoreEntry>();
 			foreach (var map in Portal2.CampaignMaps
 				.Where(x => x.IsOfficial)
 				.Where(x => !excluded.Contains((ulong)x.BestPortalsId)))
@@ -51,20 +49,15 @@ namespace LeastPortals
 		{
 			Entries.First(x => x.Id == (ulong)id).Score = score;
 		}
-		public void CalculateTotalScore(Portal2MapType mode = Portal2MapType.Unknown)
+		public void CalculateTotalScore()
 		{
-			if (mode == Portal2MapType.SinglePlayer || mode == default)
-			{
-				var sp = Entries.Where(e => e.Mode == Portal2MapType.SinglePlayer);
-				if (!sp.Any(x => x.Score == default))
-					_singlePlayerScore = (int)sp.Sum(e => e.Score);
-			}
-			if (mode == Portal2MapType.Cooperative || mode == default)
-			{
-				var mp = Entries.Where(e => e.Mode == Portal2MapType.Cooperative);
-				if (!mp.Any(x => x.Score == default))
-					_cooperativeScore = (int)mp.Sum(e => e.Score);
-			}
+			var sp = Entries.Where(e => e.Mode == Portal2MapType.SinglePlayer);
+			var mp = Entries.Where(e => e.Mode == Portal2MapType.Cooperative);
+
+			if (!sp.Any(x => x.Score == default))
+				_singlePlayerScore = (int)sp.Sum(e => e.Score);			
+			if (!mp.Any(x => x.Score == default))
+				_cooperativeScore = (int)mp.Sum(e => e.Score);
 		}
 		public int GetTotalScore(Portal2MapType mode)
 		{

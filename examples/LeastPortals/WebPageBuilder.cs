@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using SteamCommunity;
 using Portal2Boards.Extensions;
+using SteamCommunity;
 
 namespace LeastPortals
 {
@@ -45,19 +45,17 @@ namespace LeastPortals
 			var cheaters = new Dictionary<ulong, object>();
 
 			// Local function
-			async Task GetPlayers(IEnumerable<IStatsLeaderboardEntry> leaderboards, Portal2MapType mode)
+			async Task GetPlayers(IEnumerable<IStatsLeaderboardEntry> leaderboards)
 			{
 				var current = 1;
 				var total = leaderboards.Count();
 
 				foreach (var lb in leaderboards)
 				{
-					var wr = _wrs
-						.Where(x => x.Mode == mode)
-						.First(x => x.Id == (ulong)lb.Id).WorldRecord;
-
+					var wr = _wrs.First(x => x.Id == (ulong)lb.Id).WorldRecord;
 					var cache = $"gh-pages/cache/{lb.Id}.json";
 					var entries = new List<CacheItem>();
+
 					if (!File.Exists(cache))
 					{
 						var page = await _client.GetLeaderboardAsync("Portal 2", lb.Id);
@@ -75,7 +73,7 @@ namespace LeastPortals
 
 					// Check if we need a second page
 					if (entries.Last().Score == wr)
-						Console.Write(" !!! ");
+						Console.Write(" [LIMITED] ");
 
 					var ties = entries.Count(entry => entry.Score == wr);
 					Console.WriteLine($"[{lb.Id}] {lb.DisplayName} -> {ties} ({current}/{total})");
@@ -83,7 +81,8 @@ namespace LeastPortals
 					_stats.SetRecordCount((ulong)lb.Id, ties);
 
 					foreach (var cheater in entries.Where(entry => entry.Score < wr))
-						cheaters.TryAdd(cheater.Id, null);
+						if (cheaters.TryAdd(cheater.Id, null))
+							//Console.WriteLine($"[New Cheater] {cheater.Id}");
 
 					foreach (var entry in entries.Where(entry => entry.Score >= wr))
 					{
@@ -100,24 +99,23 @@ namespace LeastPortals
 				}
 
 				_players.RemoveAll(p => cheaters.ContainsKey(p.Id));
-
-				// Filter
-				foreach (var player in _players)
-					player.CalculateTotalScore(mode);
-
-				var before = _players.Count;
-				if (mode == Portal2MapType.SinglePlayer)
-					_players.RemoveAll(p => !p.IsSinglePlayer);
-				else
-					_players.RemoveAll(p => !p.IsSinglePlayer && !p.IsCooperative);
-				var after = _players.Count;
-
-				Console.WriteLine($"Filtered {after} from {before} players.");
-				Console.WriteLine();
 			}
 
-			await GetPlayers(sp, Portal2MapType.SinglePlayer);
-			await GetPlayers(mp, Portal2MapType.Cooperative);
+			await GetPlayers(sp);
+			await GetPlayers(mp);
+		}
+		public Task Filter()
+		{
+			foreach (var player in _players)
+				player.CalculateTotalScore();
+
+			var before = _players.Count;
+			_players.RemoveAll(p => !p.IsSinglePlayer && !p.IsCooperative);
+			var after = _players.Count;
+
+			Console.WriteLine($"Filtered {after} from {before} players.");
+			Console.WriteLine();
+			return Task.CompletedTask;
 		}
 		public async Task Export(string file, string statsFile = "gh-pages/stats.json")
 		{
@@ -130,6 +128,9 @@ namespace LeastPortals
 			if (!File.Exists(file)) return;
 			_players = JsonConvert.DeserializeObject<List<Player>>(await File.ReadAllTextAsync(file));
 			await _stats.Import(statsFile);
+
+			foreach (var player in _players)
+				player.CalculateTotalScore();
 		}
 		public async Task Build(string file, int maxRank = 10)
 		{
@@ -158,9 +159,10 @@ namespace LeastPortals
 					// Download Steam profile to resolve name
 					if (!cache.ContainsKey(player.Id))
 					{
-						cache.Add(player.Id, (await _client.GetProfileAsync(player.Id)));
-						Console.WriteLine($"[{player.Id}] {player.GetTotalScore(mode)} by {cache[player.Id].Name}");
+						var profile = await _client.GetProfileAsync(player.Id);
+						cache.Add(player.Id, profile);
 						await Task.Delay(1000);
+						Console.WriteLine($"[{player.Id}] {player.GetTotalScore(mode)} by {cache[player.Id].Name}");
 					}
 
 					rows.Add(FillRow(player, cache[player.Id], perfectScore, rank, mode));
@@ -391,7 +393,7 @@ $@"							<tr class=""white-text modal-trigger"" href=""#{profile.Id}"">
 				(
 $@"									<tr>
 										<th>{map.Name}</th>
-										<th>{((entry.Score == default) ? "-" : $"{entry.Score}")}</th>
+										<th>{((entry.Score == default) ? "Unknown" : $"{entry.Score}")}</th>
 										<th>{((delta == 0) ? "-" : $"+{delta}")}</th>
 									</tr>"
 					);
