@@ -7,7 +7,7 @@ namespace LeastPortals
     {
 		private static async Task Main(string[] args)
 		{
-			var builder = new WebPageBuilder("LeastPortals/2.1");
+			var builder = new WebPageBuilder("LeastPortals/2.2");
 
 			//await builder.Initialize();
 			//await builder.Export("gh-pages/unfiltered.json");

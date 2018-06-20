@@ -7,24 +7,41 @@ namespace LeastPortals
 {
 	internal class Statistics
 	{
-		private Dictionary<ulong, int> _tiedRecords { get; set; }
+		[JsonProperty("tied_records")]
+		public Dictionary<ulong, int> TiedRecords { get; set; }
+		[JsonProperty("cheaters")]
+		public HashSet<ulong> Cheaters { get; set; }
 
-		public Statistics() => _tiedRecords = new Dictionary<ulong, int>();
+		[JsonIgnore]
+		private string _file { get; set; }
+
+		public Statistics(string file)
+		{
+			_file = file;
+			TiedRecords = new Dictionary<ulong, int>();
+			Cheaters = new HashSet<ulong>();
+		}
 
 		public int GetRecordCount(ulong id)
-			=> _tiedRecords.GetValueOrDefault(id);
+			=> TiedRecords.GetValueOrDefault(id);
 		public void SetRecordCount(ulong id, int count)
-			=> _tiedRecords.Add(id, count);
+			=> TiedRecords.Add(id, count);
+		public void AddCheater(ulong id)
+			=> Cheaters.Add(id);
+		public bool IsCheater(ulong id)
+			=> Cheaters.Contains(id);
 
-		public async Task Export(string file)
+		public async Task Export()
 		{
-			if (File.Exists(file)) File.Delete(file);
-			await File.WriteAllTextAsync(file, JsonConvert.SerializeObject(_tiedRecords));
+			if (File.Exists(_file)) File.Delete(_file);
+			await File.WriteAllTextAsync(_file, JsonConvert.SerializeObject(this));
 		}
-		public async Task Import(string file)
+		public async Task Import()
 		{
-			if (!File.Exists(file)) return;
-			_tiedRecords = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(await File.ReadAllTextAsync(file));
+			if (!File.Exists(_file)) return;
+			var stats = JsonConvert.DeserializeObject<Statistics>(await File.ReadAllTextAsync(_file));
+			TiedRecords = stats.TiedRecords;
+			Cheaters = stats.Cheaters;
 		}
 	}
 }

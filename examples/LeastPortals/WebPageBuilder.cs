@@ -20,7 +20,7 @@ namespace LeastPortals
 		public WebPageBuilder(string userAgent)
 		{
 			_players = new List<Player>();
-			_stats = new Statistics();
+			_stats = new Statistics("gh-pages/stats.json");
 
 			_client = new SteamCommunityClient(userAgent, false);
 			_client.Log += Logger.LogSteamCommunityClient;
@@ -42,20 +42,16 @@ namespace LeastPortals
 				.Where(lb => lb.Name.StartsWith("challenge_portals_mp"))
 				.Where(lb => !excluded.Contains((ulong)lb.Id));
 
-			var cheaters = new Dictionary<ulong, object>();
-
 			// Local function
 			async Task GetPlayers(IEnumerable<IStatsLeaderboardEntry> leaderboards)
 			{
-				var current = 1;
-				var total = leaderboards.Count();
-
+				var maps = new Dictionary<IStatsLeaderboardEntry, List<CacheItem>>();
 				foreach (var lb in leaderboards)
 				{
-					var wr = _wrs.First(x => x.Id == (ulong)lb.Id).WorldRecord;
-					var cache = $"gh-pages/cache/{lb.Id}.json";
 					var entries = new List<CacheItem>();
+					var wr = _wrs.First(x => x.Id == (ulong)lb.Id).WorldRecord;
 
+					var cache = $"gh-pages/cache/{lb.Id}.json";
 					if (!File.Exists(cache))
 					{
 						var page = await _client.GetLeaderboardAsync("Portal 2", lb.Id);
@@ -63,31 +59,40 @@ namespace LeastPortals
 							entries.Add(new CacheItem(){ Id = entry.Id, Score = entry.Score });
 						await File.WriteAllTextAsync(cache, JsonConvert.SerializeObject(entries));
 						await Task.Delay(1000);
-						Console.Write("[NEW] ");
+						Console.Write($"[CACHED] ");
 					}
 					else
 					{
 						entries = JsonConvert.DeserializeObject<List<CacheItem>>(await File.ReadAllTextAsync(cache));
-						Console.Write("[CACHE] ");
+						Console.Write($"[NEW] ");
 					}
 
 					// Check if we need a second page
 					if (entries.Last().Score == wr)
-						Console.Write(" [LIMITED] ");
-
-					var ties = entries.Count(entry => entry.Score == wr);
-					Console.WriteLine($"[{lb.Id}] {lb.DisplayName} -> {ties} ({current}/{total})");
-
-					_stats.SetRecordCount((ulong)lb.Id, ties);
+						Console.Write($" [LIMITED] ");
 
 					foreach (var cheater in entries.Where(entry => entry.Score < wr))
-						if (cheaters.TryAdd(cheater.Id, null))
-							//Console.WriteLine($"[New Cheater] {cheater.Id}");
+						_stats.AddCheater(cheater.Id);
 
+					Console.WriteLine(lb.Id);
+					maps.Add(lb, entries);
+				}
+
+				var current = 1;
+				foreach (var map in maps)
+				{
+					var lb = map.Key;
+					var entries = map.Value;
+					var wr = _wrs.First(x => x.Id == (ulong)lb.Id).WorldRecord;
+
+					var ties = 0;
 					foreach (var entry in entries.Where(entry => entry.Score >= wr))
 					{
-						if (cheaters.TryGetValue(entry.Id, out _))
+						if (_stats.IsCheater(entry.Id))
 							continue;
+
+						if (entry.Score == wr)
+							ties++;
 
 						var player = _players.FirstOrDefault(p => p.Id == entry.Id);
 						if (player == null)
@@ -95,10 +100,14 @@ namespace LeastPortals
 
 						player.Update(lb.Id, entry.Score);
 					}
+
+					_stats.SetRecordCount((ulong)lb.Id, ties);
+
+					Console.WriteLine($"[{lb.Id}] {lb.DisplayName} -> {ties} ({current}/{maps.Count})");
 					current++;
 				}
 
-				_players.RemoveAll(p => cheaters.ContainsKey(p.Id));
+				_players.RemoveAll(p => _stats.IsCheater(p.Id));
 			}
 
 			await GetPlayers(sp);
@@ -117,17 +126,17 @@ namespace LeastPortals
 			Console.WriteLine();
 			return Task.CompletedTask;
 		}
-		public async Task Export(string file, string statsFile = "gh-pages/stats.json")
+		public async Task Export(string file)
 		{
 			if (File.Exists(file)) File.Delete(file);
 			await File.WriteAllTextAsync(file, JsonConvert.SerializeObject(_players));
-			await _stats.Export(statsFile);
+			await _stats.Export();
 		}
-		public async Task Import(string file, string statsFile = "gh-pages/stats.json")
+		public async Task Import(string file)
 		{
 			if (!File.Exists(file)) return;
 			_players = JsonConvert.DeserializeObject<List<Player>>(await File.ReadAllTextAsync(file));
-			await _stats.Import(statsFile);
+			await _stats.Import();
 
 			foreach (var player in _players)
 				player.CalculateTotalScore();
@@ -311,6 +320,26 @@ $@"<!DOCTYPE html>
 			</div>
 		</div>
 		<div id=""records"">
+			<div class=""row""></div>
+			<div class=""row"">
+				<div class=""col s12 m12 l2 push-l2"">
+					<input id=""search-box"" class=""search white-text"" placeholder=""Search"" />
+				</div>
+				<div class=""col s12 m12 l1 push-l2"">
+					<br>
+					<label>
+						<input id=""cbx-map"" type=""checkbox"" checked=""checked"" onclick=""updateFilter()"" />
+						<span>Map</span>
+					</label>
+				</div>
+				<div class=""col s12 m12 l1 push-l2"">
+					<br>
+					<label>
+						<input id=""cbx-portals"" type=""checkbox"" checked=""checked"" onclick=""updateFilter()"" />
+						<span>Portals</span>
+					</label>
+				</div>
+			</div>
 			<div class=""row"">
 				<div class=""col s12 m12 l8 push-l2"">
 					<table class=""highlight"">
@@ -322,7 +351,7 @@ $@"<!DOCTYPE html>
 								<th>Video</th>
 							</tr>
 						</thead>
-						<tbody>
+						<tbody class=""list"">
 {string.Join("\n", recordRows)}
 						</tbody>
 					</table>
@@ -351,6 +380,8 @@ $@"<!DOCTYPE html>
 					<br>
 					<h6>Made with <a class=""link"" href=""https://github.com/NeKzor/SteamCommunity.Net"">SteamCommunity.Net</a></h6>
 					<br>
+					<h6>Number of detected cheaters: {_stats.Cheaters.Count}</h6>
+					<br>
 					<h6>Last Update: {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss '(UTC)'")}</h6>
 				</div>
 			</div>
@@ -366,6 +397,20 @@ $@"<!DOCTYPE html>
 				$('.sidenav').sidenav();
 				$('.modal').modal();
 			}});
+		</script>
+		<script src=""https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js""></script>
+		<script>
+			var records = new List('records', {{ valueNames: [ 'map', 'portals' ] }});
+
+			function updateFilter() {{
+				var filter = [];
+				if (document.getElementById(""cbx-map"").checked) filter.push(""map"");
+				if (document.getElementById(""cbx-portals"").checked) filter.push(""portals"");
+				records.valueNames = filter;
+				records.search();
+				records.reIndex();
+				records.search(document.getElementById(""search-box"").value);
+			}}
 		</script>
 	</body>
 </html>";
@@ -392,7 +437,7 @@ $@"							<tr class=""white-text modal-trigger"" href=""#{profile.Id}"">
 				rows.Add
 				(
 $@"									<tr>
-										<th>{map.Name}</th>
+										<th><a class=""steam-link"" href=""https://steamcommunity.com/stats/Portal2/leaderboards/{map.Id}"">{map.Name}</a></th>
 										<th>{((entry.Score == default) ? "Unknown" : $"{entry.Score}")}</th>
 										<th>{((delta == 0) ? "-" : $"+{delta}")}</th>
 									</tr>"
@@ -432,12 +477,12 @@ $@"			<div id=""{profile.Id}"" class=""modal blue-grey darken-3"">
 				+ map.Name.Replace(' ', '+')
 				+ "+in+" + map.WorldRecord + "+Portal" + ((map.WorldRecord == 1) ? string.Empty : "s");
 			return
-$@"									<tr>
-										<th><a class=""steam-link"" href=""https://steamcommunity.com/stats/Portal2/leaderboards/{map.Id}"">{map.Name}</a></th>
-										<th>{map.WorldRecord}</th>
-										<th>{ties}</th>
-										<th><a class=""btn-floating waves-effect waves-light red"" title=""Search Record on YouTube"" href=""{youtube}"" target=""_blank""><i class=""material-icons"">play_arrow</i></a></td></th>
-									</tr>";
+$@"							<tr>
+								<th><a class=""steam-link map"" href=""https://steamcommunity.com/stats/Portal2/leaderboards/{map.Id}"">{map.Name}</a></th>
+								<th class=""portals"">{map.WorldRecord}</th>
+								<th>{ties}</th>
+								<th><a class=""btn-floating waves-effect waves-light red"" title=""Search Record on YouTube"" href=""{youtube}"" target=""_blank""><i class=""material-icons"">play_arrow</i></a></td></th>
+							</tr>";
 		}
 	}
 }
