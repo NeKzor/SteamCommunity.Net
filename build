@@ -1,0 +1,4 @@
+#!/bin/bash
+dotnet build src/SteamCommunity.Net/
+dotnet build examples/LeastPortals/
+dotnet build examples/SkillPoints/
