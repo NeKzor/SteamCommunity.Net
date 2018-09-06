@@ -54,19 +54,18 @@ namespace SkillPoints
             }
         }
 
-        public void Update(int id, decimal? score)
+        public void Update(uint id, decimal score)
         {
             Entries.First(x => x.Id == (ulong)id).Score = score;
         }
         public void CalculateTotalScore()
         {
-            var sp = Entries.Where(e => e.Mode == Portal2MapType.SinglePlayer);
-            var mp = Entries.Where(e => e.Mode == Portal2MapType.Cooperative);
-
-            if (!sp.Any(x => x.Score == default))
-                _singlePlayerScore = (int)sp.Sum(e => e.Score);
-            if (!mp.Any(x => x.Score == default))
-                _cooperativeScore = (int)mp.Sum(e => e.Score);
+            _singlePlayerScore = Entries
+                .Where(e => e.Mode == Portal2MapType.SinglePlayer)
+                .Sum(e => e.Score);
+            _cooperativeScore = Entries
+                .Where(e => e.Mode == Portal2MapType.Cooperative)
+                .Sum(e => e.Score);
         }
         public decimal GetTotalScore(Portal2MapType mode)
         {

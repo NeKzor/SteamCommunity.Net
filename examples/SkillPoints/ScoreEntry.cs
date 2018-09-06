@@ -10,6 +10,6 @@ namespace SkillPoints
         [JsonProperty("mode")]
         public Portal2MapType Mode { get; set; }
         [JsonProperty("score")]
-        public decimal? Score { get; set; }
+        public decimal Score { get; set; }
     }
 }

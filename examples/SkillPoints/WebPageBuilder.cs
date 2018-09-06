@@ -42,52 +42,64 @@ namespace SkillPoints
         {
             return _game.Entries.First(e => e.Id == id).Entries;
         }
-        public async Task Fetch(int max = 10)
+        public async Task Fetch(int max = 5)
         {
             _game = await _steam.GetLeaderboardsAsync("Portal 2");
 
-            var entries = await _iverb.GetAggregatedAsync();
-            foreach (var entry in entries.Points.Take(max))
+            // Local function
+            async Task InternalFetch(AggregatedMode mode)
             {
-                var profile = await _iverb.GetProfileAsync((entry.Player as SteamUser).Id);
-                var player = new Player(profile, _campaign);
-
-                Console.WriteLine($"[{player.Id}] {player.Name}");
-
-                var chapters = profile.Times.SinglePlayerChapters.Chambers
-                    .ToDictionary(x => x.Key, x => x.Value);
-
-                foreach (var chapter in profile.Times.CooperativeChapters.Chambers)
+                var entries = await _iverb.GetAggregatedAsync(mode);
+                foreach (var entry in entries.Points.Take(max))
                 {
-                    chapters.Add(chapter.Key, chapter.Value);
-                }
+                    var id = (entry.Player as SteamUser).Id;
+                    if (_players.Any(p => p.Id == id)) continue;
 
-                foreach (var chapter in chapters)
-                {
-                    foreach (var chamber in chapter.Value.Data)
+                    var profile = await _iverb.GetProfileAsync(id);
+                    var player = new Player(profile, _campaign);
+
+                    Console.WriteLine($"[{player.Id}] {player.Name}");
+
+                    // Merge all chapters
+                    var chapters = profile.Times.SinglePlayerChapters.Chambers
+                        .ToDictionary(x => x.Key, x => x.Value);
+                    foreach (var chapter in profile.Times.CooperativeChapters.Chambers)
                     {
-                        var map = _campaign.FirstOrDefault(x => x.BestTimeId == chamber.Key);
-                        if (map != null)
+                        chapters.Add(chapter.Key, chapter.Value);
+                    }
+
+                    foreach (var chapter in chapters
+                        .Select(x => x.Value))
+                    {
+                        foreach (var (chamberId, playerRank) in chapter.Data
+                            .Select(x => (x.Key, (decimal)(x.Value.PlayerRank ?? 0))))
                         {
-                            if (chamber.Value.PlayerRank != default)
+                            if (_campaign.Any(x => x.BestTimeId == chamberId))
                             {
                                 // Algorithm
-                                decimal skillpoints = (GetMaxEntries(chamber.Key) - 1)
-                                                                    /
-                                                      (uint)(chamber.Value.PlayerRank);
+                                if (playerRank != 0)
+                                {
+                                    var skillpoints = (GetMaxEntries(chamberId) - 1)
+                                                                /
+                                                            playerRank;
 
-                                player.Update((int)chamber.Key, skillpoints);
-                            }
-                            else
-                            {
-                                player.Update((int)chamber.Key, 0);
+                                    player.Update(chamberId, skillpoints);
+                                }
                             }
                         }
                     }
+                    player.CalculateTotalScore();
+                    _players.Add(player);
                 }
-                player.CalculateTotalScore();
-                _players.Add(player);
+
+                // Some rate limit I guess (or we quickly get 500 internal server error xd)
+                await Task.Delay(1337);
             }
+
+            await InternalFetch(AggregatedMode.SinglePlayer);
+            await InternalFetch(AggregatedMode.Cooperative);
+
+            Console.WriteLine($"Fetched {_players.Count} profiles!");
         }
         public async Task Build(string file, int max = 10)
         {
@@ -161,13 +173,15 @@ $@"<!DOCTYPE html>
 		<nav class=""nav-extended blue-grey darken-3"">
 			<div class=""nav-wrapper"">
 				<div class=""col s12 hide-on-small-only"">
-					<a href=""index.html"" class=""breadcrumb"">&nbsp;&nbsp;&nbsp;nekzor.github.io</a>
-					<a href=""lp.html"" class=""breadcrumb"">Skill Points</a>
-				</div>
-				<div class=""col s12 hide-on-med-and-up"">
-					<a href=""#"" data-target=""slide-out"" class=""sidenav-trigger""><i class=""material-icons"">menu</i></a>
-					<a href=""skill.html"" class=""brand-logo center"">SP</a>
-				</div>
+                    <a href=""#"" data-target=""slide-out"" class=""sidenav-trigger show-on-large""><i class=""material-icons"">menu</i></a>
+                    <a href=""index.html"">&nbsp;&nbsp;&nbsp;nekzor.github.io</a>
+                    <a class=""breadcrumb""></a>
+                    <a href=""skill.html"">Skill Points</a>
+                </div>
+                <div class=""col s12 hide-on-med-and-up"">
+                    <a href=""#"" data-target=""slide-out"" class=""sidenav-trigger""><i class=""material-icons"">menu</i></a>
+                    <a href=""skill.html"" class=""brand-logo center"">Skill Points</a>
+                </div>
 			</div>
 			<div class=""nav-content"">
 				<ul class=""tabs tabs-transparent"">
@@ -178,10 +192,12 @@ $@"<!DOCTYPE html>
 				</ul>
 			</div>
 		</nav>
-		<ul id=""slide-out"" class=""sidenav hide-on-med-and-up"">
-			<li><a href=""index.html"">nekzor.github.io</a></li>
-			<li><a href=""skill.html"">Skill Points</a></li>
-		</ul>
+		<ul id=""slide-out"" class=""sidenav"">
+            <li><a href=""index.html"">nekzor.github.io</a></li>
+            <li><a href=""p2bn.html"">Portal2Boards.Net</a></li>
+            <li><a href=""history.html"">History</a></li>
+            <li><a href=""skill.html"">Skill Points</a></li>
+        </ul>
 		<div id=""sp"">
 			<div class=""row"">
 				<div class=""col s12 m12 l8 push-l2"">
@@ -252,9 +268,13 @@ $@"<!DOCTYPE html>
 					<p>
 						<code>skill_points = (leaderboard_entries - 1) / player_rank</code>
 					</p>
+                    <img src=""images/comparison.png"" />
+                    <br>
 					<br>
 					<h6>Made with <a class=""link"" href=""https://github.com/NeKzor/SteamCommunity.Net"">SteamCommunity.Net</a> and <a class=""link"" href=""https://github.com/NeKzor/Portal2Boards.Net"">Portal2Boards.Net</a></h6>
 					<br>
+					<h6>Number of calculated profiles: {_players.Count}</h6>
+                    <br>
 					<h6>Last Update: {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss '(UTC)'")}</h6>
 				</div>
 			</div>
@@ -297,13 +317,13 @@ $@"							<tr class=""white-text modal-trigger"" href=""#{player.Id}"">
             {
                 var map = _campaign.First(m => m.BestTimeId == entry.Id);
                 var ptb = GetMaxEntries((uint)entry.Id) - 1;
-                var delta = (ptb - entry.Score) ?? ptb;
+                var delta = ptb - entry.Score;
                 rows.Add
                 (
 $@"									<tr>
 										<th><a class=""steam-link"" href=""https://steamcommunity.com/stats/Portal2/leaderboards/{map.BestTimeId}"">{map.Alias}</a></th>
 										<th>{((entry.Score == default) ? "Unknown" : $"{entry.Score:N0}")}</th>
-										<th>{((delta == 0) ? "0" : $"-{delta:N0}")}</th>
+										<th>{((delta > 0) ? $"-{delta:N0}" : "0")}</th>
 									</tr>"
                     );
             }
