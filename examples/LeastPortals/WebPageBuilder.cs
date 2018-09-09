@@ -9,224 +9,225 @@ using SteamCommunity;
 
 namespace LeastPortals
 {
-	internal class WebPageBuilder
-	{
-		private List<Map> _wrs;
-		private List<Player> _players;
-		private Statistics _stats;
+    internal class WebPageBuilder
+    {
+        private List<Map> _wrs;
+        private List<Player> _players;
+        private Statistics _stats;
 
-		private readonly SteamCommunityClient _client;
+        private readonly SteamCommunityClient _client;
 
-		public WebPageBuilder(string userAgent)
-		{
-			_players = new List<Player>();
-			_stats = new Statistics("gh-pages/stats.json");
+        public WebPageBuilder(string userAgent)
+        {
+            _players = new List<Player>();
+            _stats = new Statistics("gh-pages/stats.json");
 
-			_client = new SteamCommunityClient(userAgent, false);
-			_client.Log += Logger.LogSteamCommunityClient;
+            _client = new SteamCommunityClient(userAgent, false);
+            _client.Log += Logger.LogSteamCommunityClient;
 
-			_wrs = JsonConvert.DeserializeObject<List<Map>>(File.ReadAllText("gh-pages/wrs.json"));
-		}
+            _wrs = JsonConvert.DeserializeObject<List<Map>>(File.ReadAllText("gh-pages/wrs.json"));
+        }
 
-		public async Task Initialize()
-		{
-			var game = await _client.GetLeaderboardsAsync("Portal 2");
+        public async Task Initialize()
+        {
+            var game = await _client.GetLeaderboardsAsync("Portal 2");
 
-			var excluded = _wrs
-				.Where(x => x.WorldRecord == default)
-				.Select(x => x.Id);
-			var sp = game.Entries
-				.Where(lb => lb.Name.StartsWith("challenge_portals_sp"))
-				.Where(lb => !excluded.Contains((ulong)lb.Id));
-			var mp = game.Entries
-				.Where(lb => lb.Name.StartsWith("challenge_portals_mp"))
-				.Where(lb => !excluded.Contains((ulong)lb.Id));
+            var excluded = _wrs
+                .Where(x => x.Excluded)
+                .Select(x => x.Id);
+            var sp = game.Entries
+                .Where(lb => lb.Name.StartsWith("challenge_portals_sp"))
+                .Where(lb => !excluded.Contains((ulong)lb.Id));
+            var mp = game.Entries
+                .Where(lb => lb.Name.StartsWith("challenge_portals_mp"))
+                .Where(lb => !excluded.Contains((ulong)lb.Id));
 
-			// Local function
-			async Task GetPlayers(IEnumerable<IStatsLeaderboardEntry> leaderboards)
-			{
-				var maps = new Dictionary<IStatsLeaderboardEntry, List<CacheItem>>();
-				foreach (var lb in leaderboards)
-				{
-					var entries = new List<CacheItem>();
-					var wr = _wrs.First(x => x.Id == (ulong)lb.Id).WorldRecord;
+            // Local function
+            async Task GetPlayers(IEnumerable<IStatsLeaderboardEntry> leaderboards)
+            {
+                var maps = new Dictionary<IStatsLeaderboardEntry, List<CacheItem>>();
+                foreach (var lb in leaderboards)
+                {
+                    var entries = new List<CacheItem>();
+                    var wr = _wrs.First(x => x.Id == (ulong)lb.Id).WorldRecord;
 
-					var cache = $"gh-pages/cache/{lb.Id}.json";
-					if (!File.Exists(cache))
-					{
-						var page = await _client.GetLeaderboardAsync("Portal 2", lb.Id);
-						foreach (var entry in page.Entries)
-							entries.Add(new CacheItem(){ Id = entry.Id, Score = entry.Score });
-						await File.WriteAllTextAsync(cache, JsonConvert.SerializeObject(entries));
-						await Task.Delay(1000);
-						Console.Write($"[CACHED] ");
-					}
-					else
-					{
-						entries = JsonConvert.DeserializeObject<List<CacheItem>>(await File.ReadAllTextAsync(cache));
-						Console.Write($"[NEW] ");
-					}
+                    var cache = $"gh-pages/cache/{lb.Id}.json";
+                    if (!File.Exists(cache))
+                    {
+                        var page = await _client.GetLeaderboardAsync("Portal 2", lb.Id);
+                        foreach (var entry in page.Entries)
+                            entries.Add(new CacheItem() { Id = entry.Id, Score = entry.Score });
+                        await File.WriteAllTextAsync(cache, JsonConvert.SerializeObject(entries));
+                        await Task.Delay(1000);
+                        Console.Write($"[CACHED] ");
+                    }
+                    else
+                    {
+                        entries = JsonConvert.DeserializeObject<List<CacheItem>>(await File.ReadAllTextAsync(cache));
+                        Console.Write($"[NEW] ");
+                    }
 
-					// Check if we need a second page
-					if (entries.Last().Score == wr)
-						Console.Write($" [LIMITED] ");
+                    // Check if we need a second page
+                    if (entries.Last().Score == wr)
+                        Console.Write($" [LIMITED] ");
 
-					foreach (var cheater in entries.Where(entry => entry.Score < wr))
-						_stats.AddCheater(cheater.Id);
+                    foreach (var cheater in entries.Where(entry => entry.Score < wr))
+                        _stats.AddCheater(cheater.Id);
 
-					Console.WriteLine(lb.Id);
-					maps.Add(lb, entries);
-				}
+                    Console.WriteLine(lb.Id);
+                    maps.Add(lb, entries);
+                }
 
-				var current = 1;
-				foreach (var map in maps)
-				{
-					var lb = map.Key;
-					var entries = map.Value;
-					var wr = _wrs.First(x => x.Id == (ulong)lb.Id).WorldRecord;
+                var current = 1;
+                foreach (var map in maps)
+                {
+                    var lb = map.Key;
+                    var entries = map.Value;
+                    var wr = _wrs.First(x => x.Id == (ulong)lb.Id).WorldRecord;
 
-					var ties = 0;
-					foreach (var entry in entries.Where(entry => entry.Score >= wr))
-					{
-						if (_stats.IsCheater(entry.Id))
-							continue;
+                    var ties = 0;
+                    foreach (var entry in entries.Where(entry => entry.Score >= wr))
+                    {
+                        if (_stats.IsCheater(entry.Id))
+                            continue;
 
-						if (entry.Score == wr)
-							ties++;
+                        if (entry.Score == wr)
+                            ties++;
 
-						var player = _players.FirstOrDefault(p => p.Id == entry.Id);
-						if (player == null)
-							_players.Add(player = new Player(entry.Id, excluded));
+                        var player = _players.FirstOrDefault(p => p.Id == entry.Id);
+                        if (player == null)
+                            _players.Add(player = new Player(entry.Id, excluded));
 
-						player.Update(lb.Id, entry.Score);
-					}
+                        player.Update(lb.Id, entry.Score);
+                    }
 
-					_stats.SetRecordCount((ulong)lb.Id, ties);
+                    _stats.SetRecordCount((ulong)lb.Id, ties);
 
-					Console.WriteLine($"[{lb.Id}] {lb.DisplayName} -> {ties} ({current}/{maps.Count})");
-					current++;
-				}
+                    Console.WriteLine($"[{lb.Id}] {lb.DisplayName} -> {ties} ({current}/{maps.Count})");
+                    current++;
+                }
 
-				_players.RemoveAll(p => _stats.IsCheater(p.Id));
-			}
+                _players.RemoveAll(p => _stats.IsCheater(p.Id));
+            }
 
-			await GetPlayers(sp);
-			await GetPlayers(mp);
-		}
-		public Task Filter()
-		{
-			foreach (var player in _players)
-				player.CalculateTotalScore();
+            await GetPlayers(sp);
+            await GetPlayers(mp);
+        }
+        public Task Filter()
+        {
+            foreach (var player in _players)
+                player.CalculateTotalScore();
 
-			var before = _players.Count;
-			_players.RemoveAll(p => !p.IsSinglePlayer && !p.IsCooperative);
-			var after = _players.Count;
+            var before = _players.Count;
+            _players.RemoveAll(p => !p.IsSinglePlayer && !p.IsCooperative);
+            var after = _players.Count;
 
-			Console.WriteLine($"Filtered {after} from {before} players.");
-			Console.WriteLine();
-			return Task.CompletedTask;
-		}
-		public async Task Export(string file)
-		{
-			if (File.Exists(file)) File.Delete(file);
-			await File.WriteAllTextAsync(file, JsonConvert.SerializeObject(_players));
-			await _stats.Export();
-		}
-		public async Task Import(string file)
-		{
-			if (!File.Exists(file)) return;
-			_players = JsonConvert.DeserializeObject<List<Player>>(await File.ReadAllTextAsync(file));
-			await _stats.Import();
+            Console.WriteLine($"Filtered {after} from {before} players.");
+            Console.WriteLine();
+            return Task.CompletedTask;
+        }
+        public async Task Export(string file)
+        {
+            if (File.Exists(file)) File.Delete(file);
+            await File.WriteAllTextAsync(file, JsonConvert.SerializeObject(_players));
+            await _stats.Export();
+        }
+        public async Task Import(string file)
+        {
+            if (!File.Exists(file)) return;
+            _players = JsonConvert.DeserializeObject<List<Player>>(await File.ReadAllTextAsync(file));
+            await _stats.Import();
 
-			foreach (var player in _players)
-				player.CalculateTotalScore();
-		}
-		public async Task Build(string file, int maxRank = 10)
-		{
-			if (File.Exists(file)) File.Delete(file);
+            foreach (var player in _players)
+                player.CalculateTotalScore();
+        }
+        public async Task Build(string file, int maxRank = 10)
+        {
+            if (File.Exists(file)) File.Delete(file);
 
-			var cache = new Dictionary<ulong, IPublicProfile>();
-			var profilecache = new List<ulong>();
+            var cache = new Dictionary<ulong, IPublicProfile>();
+            var profilecache = new List<ulong>();
 
-			// Local function 1
-			async Task<List<string>> BuildRows(IEnumerable<Player> players, int perfectScore, Portal2MapType mode)
-			{
-				var rank = 0;
-				var current = 0;
-				var rows = new List<string>();
-				foreach (var player in players
-					.OrderBy(p => p.GetTotalScore(mode))
-					.ThenBy(p => p.Id))
-				{
-					if (current != player.GetTotalScore(mode))
-					{
-						rank++;
-						if (rank > maxRank) break;
-						current = player.GetTotalScore(mode);
-					}
+            // Local function 1
+            async Task<List<string>> BuildRows(IEnumerable<Player> players, int perfectScore, Portal2MapType mode)
+            {
+                var rank = 0;
+                var current = 0;
+                var rows = new List<string>();
+                foreach (var player in players
+                    .OrderBy(p => p.GetTotalScore(mode))
+                    .ThenBy(p => p.Id))
+                {
+                    if (current != player.GetTotalScore(mode))
+                    {
+                        rank++;
+                        if (rank > maxRank) break;
+                        current = player.GetTotalScore(mode);
+                    }
 
-					// Download Steam profile to resolve name
-					if (!cache.ContainsKey(player.Id))
-					{
-						var profile = await _client.GetProfileAsync(player.Id);
-						cache.Add(player.Id, profile);
-						await Task.Delay(1000);
-						Console.WriteLine($"[{player.Id}] {player.GetTotalScore(mode)} by {cache[player.Id].Name}");
-					}
+                    // Download Steam profile to resolve name
+                    if (!cache.ContainsKey(player.Id))
+                    {
+                        var profile = await _client.GetProfileAsync(player.Id);
+                        cache.Add(player.Id, profile);
+                        await Task.Delay(1000);
+                        Console.WriteLine($"[{player.Id}] {player.GetTotalScore(mode)} by {cache[player.Id].Name}");
+                    }
 
-					rows.Add(FillRow(player, cache[player.Id], perfectScore, rank, mode));
-				}
-				return rows;
-			}
-			// Local function 2
-			Task<List<string>> BuildProfileRows(IEnumerable<Player> players)
-			{
-				var rows = new List<string>();
-				foreach (var player in players)
-				{
-					if (!cache.ContainsKey(player.Id) || profilecache.Contains(player.Id)) continue;
-					profilecache.Add(player.Id);
-					rows.Add(FillProfileRow(player, cache[player.Id]));
-				}
-				return Task.FromResult(rows);
-			}
-			// Local function 3
-			Task<List<string>> BuildRecordRows()
-			{
-				var rows = new List<string>();
-				foreach (var map in Portal2.CampaignMaps.Where(m => m.IsOfficial))
-				{
-					var record = _wrs.First(m => m.Id == map.BestPortalsId);
-					if (record.WorldRecord != default)
-						rows.Add(FillRecordRow(record, _stats.GetRecordCount(record.Id)));
-				}
-				return Task.FromResult(rows);
-			}
+                    rows.Add(FillRow(player, cache[player.Id], perfectScore, rank, mode));
+                }
+                return rows;
+            }
+            // Local function 2
+            Task<List<string>> BuildProfileRows(IEnumerable<Player> players)
+            {
+                var rows = new List<string>();
+                foreach (var player in players)
+                {
+                    if (!cache.ContainsKey(player.Id) || profilecache.Contains(player.Id)) continue;
+                    profilecache.Add(player.Id);
+                    rows.Add(FillProfileRow(player, cache[player.Id]));
+                }
+                return Task.FromResult(rows);
+            }
+            // Local function 3
+            Task<List<string>> BuildRecordRows()
+            {
+                var rows = new List<string>();
+                foreach (var map in Portal2.CampaignMaps.Where(m => m.IsOfficial))
+                {
+                    var record = _wrs.First(m => m.Id == map.BestPortalsId);
+                    rows.Add(FillRecordRow(record, _stats.GetRecordCount(record.Id)));
+                }
+                return Task.FromResult(rows);
+            }
 
-			var maxsp = _wrs
-				.Where(x => x.Mode == Portal2MapType.SinglePlayer)
-				.Sum(x => x.WorldRecord);
-			var maxmp = _wrs
-				.Where(x => x.Mode == Portal2MapType.Cooperative)
-				.Sum(x => x.WorldRecord);
+            var maxsp = _wrs
+                .Where(x => x.Mode == Portal2MapType.SinglePlayer)
+                .Where(x => !x.Excluded)
+                .Sum(x => x.WorldRecord);
+            var maxmp = _wrs
+                .Where(x => x.Mode == Portal2MapType.Cooperative)
+                .Where(x => !x.Excluded)
+                .Sum(x => x.WorldRecord);
 
-			var sp = await BuildRows(_players.Where(p => p.IsSinglePlayer), (int)maxsp, Portal2MapType.SinglePlayer);
-			var mp = await BuildRows(_players.Where(p => p.IsCooperative), (int)maxmp, Portal2MapType.Cooperative);
-			var ov = await BuildRows(_players.Where(p => p.IsOverall), (int)(maxsp + maxmp), Portal2MapType.Unknown);
-			var rc = await BuildRecordRows();
-			var pr = await BuildProfileRows(_players.Where(x => cache.ContainsKey(x.Id)));
+            var sp = await BuildRows(_players.Where(p => p.IsSinglePlayer), (int)maxsp, Portal2MapType.SinglePlayer);
+            var mp = await BuildRows(_players.Where(p => p.IsCooperative), (int)maxmp, Portal2MapType.Cooperative);
+            var ov = await BuildRows(_players.Where(p => p.IsOverall), (int)(maxsp + maxmp), Portal2MapType.Unknown);
+            var rc = await BuildRecordRows();
+            var pr = await BuildProfileRows(_players.Where(x => cache.ContainsKey(x.Id)));
 
-			await File.WriteAllTextAsync(file, GetPage(sp, mp, ov, rc, pr));
-		}
+            await File.WriteAllTextAsync(file, GetPage(sp, mp, ov, rc, pr));
+        }
 
-		private string GetPage(
-			IEnumerable<string> singlePlayerRows,
-			IEnumerable<string> cooperativeRows,
-			IEnumerable<string> overallRows,
-			IEnumerable<string> recordRows,
-			IEnumerable<string> profileRows)
-		{
-			return
+        private string GetPage(
+            IEnumerable<string> singlePlayerRows,
+            IEnumerable<string> cooperativeRows,
+            IEnumerable<string> overallRows,
+            IEnumerable<string> recordRows,
+            IEnumerable<string> profileRows)
+        {
+            return
 $@"<!DOCTYPE html>
 <html>
 	<head>
@@ -241,13 +242,15 @@ $@"<!DOCTYPE html>
 		<nav class=""nav-extended blue-grey darken-3"">
 			<div class=""nav-wrapper"">
 				<div class=""col s12 hide-on-small-only"">
-					<a href=""index.html"" class=""breadcrumb"">&nbsp;&nbsp;&nbsp;nekzor.github.io</a>
-					<a href=""lp.html"" class=""breadcrumb"">Least Portals</a>
-				</div>
-				<div class=""col s12 hide-on-med-and-up"">
-					<a href=""#"" data-target=""slide-out"" class=""sidenav-trigger""><i class=""material-icons"">menu</i></a>
-					<a href=""lp.html"" class=""brand-logo center"">LP</a>
-				</div>
+                    <a href=""#"" data-target=""slide-out"" class=""sidenav-trigger show-on-large""><i class=""material-icons"">menu</i></a>
+                    <a href=""index.html"">&nbsp;&nbsp;&nbsp;nekzor.github.io</a>
+                    <a class=""breadcrumb""></a>
+                    <a href=""lp.html"">Least Portals</a>
+                </div>
+                <div class=""col s12 hide-on-med-and-up"">
+                    <a href=""#"" data-target=""slide-out"" class=""sidenav-trigger""><i class=""material-icons"">menu</i></a>
+                    <a href=""lp.html"" class=""brand-logo center"">Least Portals</a>
+                </div>
 			</div>
 			<div class=""nav-content"">
 				<ul class=""tabs tabs-transparent"">
@@ -259,8 +262,9 @@ $@"<!DOCTYPE html>
 				</ul>
 			</div>
 		</nav>
-		<ul id=""slide-out"" class=""sidenav hide-on-med-and-up"">
+		<ul id=""slide-out"" class=""sidenav"">
 			<li><a href=""index.html"">nekzor.github.io</a></li>
+            <li><a href=""glitches.html"">Glitches</a></li>
 			<li><a href=""lp.html"">Least Portals</a></li>
 		</ul>
 		<div id=""sp"">
@@ -281,7 +285,7 @@ $@"<!DOCTYPE html>
 			</div>
 			<div class=""row"">
 				<div class=""col s12"" align=""center"">
-					<small><sup>1</sup> Excluding Smooth Jazz, Jail Break, Neurotoxin Sabotage, Dual Lasers, Fizzler Intro, Laser Relays and Turret Intro</small>
+					<small><sup>1</sup> Excluding Smooth Jazz, Dual Lasers, Fizzler Intro, Turret Intro, Laser Relays, Jail Break and Neurotoxin Sabotage.</small>
 				</div>
 			</div>
 		</div>
@@ -372,10 +376,10 @@ $@"<!DOCTYPE html>
 						- Page generator will fetch 5k entries per leaderboard due to the limit for one API call.
 					</p>
 					<p>
-						- Some leaderboards are excluded because more than 5k players tied the world record.
+						- Some leaderboards are excluded because more than 5k players tied 1st, 2nd rank etc.
 					</p>
 					<p>
-						- Users who tied the world record will be prioritized and cheaters who have invalid scores will be ignored.
+						- Users who tied the world record will be prioritized and cheaters with invalid scores will be ignored.
 					</p>
 					<br>
 					<h6>Made with <a class=""link"" href=""https://github.com/NeKzor/SteamCommunity.Net"">SteamCommunity.Net</a></h6>
@@ -414,11 +418,11 @@ $@"<!DOCTYPE html>
 		</script>
 	</body>
 </html>";
-		}
-		private string FillRow(Player player, IPublicProfile profile, int possible, int rank, Portal2MapType mode)
-		{
-			var stats = (player.GetTotalScore(mode) - possible != 0) ? $" ({possible}+{player.GetTotalScore(mode) - possible})" : string.Empty;
-			return
+        }
+        private string FillRow(Player player, IPublicProfile profile, int possible, int rank, Portal2MapType mode)
+        {
+            var stats = (player.GetTotalScore(mode) - possible != 0) ? $" ({possible}+{player.GetTotalScore(mode) - possible})" : string.Empty;
+            return
 $@"							<tr class=""white-text modal-trigger"" href=""#{profile.Id}"">
 								<td class=""valign-wrapper"">
 									<img class=""circle responsive-img"" src=""{profile.AvatarIcon}"">
@@ -426,25 +430,25 @@ $@"							<tr class=""white-text modal-trigger"" href=""#{profile.Id}"">
 								</td>
 								<td title=""{(int)(((double)possible / player.GetTotalScore(mode)) * 100)}%{stats}"">{player.GetTotalScore(mode)}</td>
 							</tr>";
-		}
-		private string FillProfileRow(Player player, IPublicProfile profile)
-		{
-			var rows = new List<string>();
-			foreach (var entry in player.Entries)
-			{
-				var map = _wrs.First(x => (ulong)x.Id == entry.Id);
-				var delta = (entry.Score - map.WorldRecord) ?? 0;
-				rows.Add
-				(
+        }
+        private string FillProfileRow(Player player, IPublicProfile profile)
+        {
+            var rows = new List<string>();
+            foreach (var entry in player.Entries)
+            {
+                var map = _wrs.First(x => (ulong)x.Id == entry.Id);
+                var delta = (entry.Score - map.WorldRecord) ?? 0;
+                rows.Add
+                (
 $@"									<tr>
 										<th><a class=""steam-link"" href=""https://steamcommunity.com/stats/Portal2/leaderboards/{map.Id}"">{map.Name}</a></th>
 										<th>{((entry.Score == default) ? "Unknown" : $"{entry.Score}")}</th>
 										<th>{((delta == 0) ? "-" : $"+{delta}")}</th>
 									</tr>"
-					);
-				}
+                    );
+            }
 
-			return
+            return
 $@"			<div id=""{profile.Id}"" class=""modal blue-grey darken-3"">
 				<div class=""modal-content"">
 					<div class=""valign-wrapper"">
@@ -470,19 +474,19 @@ $@"			<div id=""{profile.Id}"" class=""modal blue-grey darken-3"">
 					</div>
 				</div>
 			</div>";
-		}
-		private string FillRecordRow(Map map, int ties)
-		{
-			var youtube = "https://www.youtube.com/results?search_query=Portal+2+"
-				+ map.Name.Replace(' ', '+')
-				+ "+in+" + map.WorldRecord + "+Portal" + ((map.WorldRecord == 1) ? string.Empty : "s");
-			return
+        }
+        private string FillRecordRow(Map map, int ties)
+        {
+            var youtube = "https://www.youtube.com/results?search_query=Portal+2+"
+                + map.Name.Replace(' ', '+')
+                + "+in+" + map.WorldRecord + "+Portal" + ((map.WorldRecord == 1) ? string.Empty : "s");
+            return
 $@"							<tr>
 								<th><a class=""steam-link map"" href=""https://steamcommunity.com/stats/Portal2/leaderboards/{map.Id}"">{map.Name}</a></th>
 								<th class=""portals"">{map.WorldRecord}</th>
-								<th>{ties}</th>
+								<th>{((ties != 0) ? $"{ties:N0}" : "-")}</th>
 								<th><a class=""btn-floating waves-effect waves-light red"" title=""Search Record on YouTube"" href=""{youtube}"" target=""_blank""><i class=""material-icons"">play_arrow</i></a></td></th>
 							</tr>";
-		}
-	}
+        }
+    }
 }
