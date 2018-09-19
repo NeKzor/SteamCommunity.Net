@@ -55,7 +55,78 @@ namespace Seum
 
         private (decimal, decimal) GetRankTimes(uint id)
         {
-            return (_scores[id].RankOne, _scores[id].RankTen);
+            return (_scores[id].Ranks.First(), _scores[id].Ranks.ElementAt(9));
+        }
+        public int GetPoints(uint chamberId, decimal playerTime, decimal playerRank)
+        {
+            // Algorithm
+            var (rankOneTime, rankTenTime) = GetRankTimes(chamberId);
+            return (rankOneTime == playerTime)
+                ? (int)10000
+                : (int)(((((rankOneTime / playerTime)
+                    / (1.007m - (rankOneTime / playerTime))
+                        * (rankTenTime / rankOneTime))
+                            / 1.4425m / 1.75m)
+                                + (100 / (playerRank / 1.375m) * 1.8m))
+                                    * 50m);
+        }
+
+        public async Task Dump()
+        {
+            var file = $"gh-pages/dump.csv";
+            if (File.Exists(file))
+                File.Delete(file);
+
+            var dump = new Dump();
+            _scores.Clear();
+
+            foreach (var mapId in _campaign
+                .Select(m => (ulong)m.BestTimeId))
+            {
+                var cache = $"gh-pages/cache/{mapId}.json";
+                var item = JsonConvert.DeserializeObject<ScoreItem>(await File.ReadAllTextAsync(cache));
+                Console.WriteLine($"{mapId} -> {item.Ranks.First()} & {item.Ranks.ElementAt(9)}");
+
+                _scores.Add(mapId, item);
+
+                var lastscore = 0u;
+                var scores = new List<(uint, int)>();
+                var rank = 0;
+                foreach (var score in item.Ranks)
+                {
+                    if (lastscore != score)
+                    {
+                        scores.Add((score, GetPoints((uint)mapId, score, ++rank)));
+                    }
+                    lastscore = score;
+                }
+                dump.Data.Add(mapId, new DumpItem() { ItemData = scores });
+            }
+
+            await File.WriteAllTextAsync(file, dump.ToString());
+
+            var minranks = dump.Data.Min(x => x.Value.ItemData.Count);
+            var max = dump.Data.First();
+            var min = dump.Data.First();
+            var maxavg = max.Value.Average(minranks);
+            var minavg = maxavg;
+            foreach (var data in dump.Data.Skip(1))
+            {
+                if (data.Value.Average(minranks) > maxavg)
+                {
+                    maxavg = data.Value.Average(minranks);
+                    max = data;
+                }
+                if (data.Value.Average(minranks) < minavg)
+                {
+                    minavg = data.Value.Average(minranks);
+                    min = data;
+                }
+            }
+
+            Console.WriteLine($"From Rank 1-{minranks}:");
+            Console.WriteLine($"MaxAvg = {maxavg} ({Portal2Map.Search(max.Key).Alias})");
+            Console.WriteLine($"MinAvg = {minavg} ({Portal2Map.Search(min.Key).Alias})");
         }
         public async Task Fetch(int max = 5)
         {
@@ -71,12 +142,25 @@ namespace Seum
                 var score = default(ScoreItem);
                 if (!File.Exists(cache))
                 {
-                    var leaderboard = await _iverb.GetChamberAsync(mapId);
                     score = new ScoreItem()
                     {
-                        RankOne = (uint)leaderboard.Entries.Take(1).First().Score,
-                        RankTen = (uint)leaderboard.Entries.Skip(9).Take(1).First().Score
+                        Ranks = new List<uint>()
                     };
+
+                    var leaderboard = await _iverb.GetChamberAsync(mapId);
+                    var rank = 0;
+                    foreach (var entry in leaderboard.Entries)
+                    {
+                        if (rank == 200)
+                            break;
+
+                        if (rank + 1 == entry.ScoreRank)
+                        {
+                            rank++;
+                            score.Ranks.Add((uint)entry.Score);
+                        }
+                    }
+
                     await File.WriteAllTextAsync(cache, JsonConvert.SerializeObject(score));
                     await Task.Delay(1337);
                     Console.Write($"[CACHED] ");
@@ -86,7 +170,7 @@ namespace Seum
                     score = JsonConvert.DeserializeObject<ScoreItem>(await File.ReadAllTextAsync(cache));
                     Console.Write($"[NEW] ");
                 }
-                Console.WriteLine($"{mapId} -> {score.RankTen} & {score.RankTen}");
+                Console.WriteLine($"{mapId} -> {score.Ranks.First()} & {score.Ranks.ElementAt(9)}");
                 _scores.Add(mapId, score);
             }
 
@@ -116,24 +200,13 @@ namespace Seum
                         .Select(x => x.Value))
                     {
                         foreach (var (chamberId, playerTime, playerRank) in chapter.Data
-                            .Select(x => (x.Key, (decimal)(x.Value.Score ?? 0), (decimal)(x.Value.PlayerRank ?? 0))))
+                            .Select(x => (x.Key, (decimal)(x.Value.Score ?? 0), (decimal)(x.Value.ScoreRank ?? 0))))
                         {
                             if (_campaign.Any(x => x.BestTimeId == chamberId))
                             {
-                                // Algorithm
                                 if (playerRank != 0)
                                 {
-                                    var (rankOneTime, rankTenTime) = GetRankTimes(chamberId);
-                                    var score = (rankOneTime == playerTime)
-                                        ? (int)10000
-                                        : (int)(((((rankOneTime / playerTime)
-                                            / (1.007m - (rankOneTime / playerTime))
-                                                * (rankTenTime / rankOneTime))
-                                                    / 1.4425m / 1.75m)
-                                                        + (100 / (playerRank / 1.375m) * 1.8m))
-                                                            * 50m);
-
-                                    player.Update(chamberId, score);
+                                    player.Update(chamberId, GetPoints(chamberId, playerTime, playerRank));
                                 }
                             }
                         }

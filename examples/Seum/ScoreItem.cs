@@ -4,9 +4,7 @@ namespace Seum
 {
     internal class ScoreItem
     {
-        [JsonProperty("rank_one")]
-        public uint RankOne { get; set; }
-        [JsonProperty("rank_ten")]
-        public uint RankTen { get; set; }
+        [JsonProperty("ranks")]
+        public System.Collections.Generic.List<uint> Ranks { get; set; }
     }
 }

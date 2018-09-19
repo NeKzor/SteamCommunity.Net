@@ -11,6 +11,8 @@ namespace Seum
 
             await builder.Fetch(30);
             await builder.Build("gh-pages/seum.html", 30);
+
+            await builder.Dump();
         }
     }
 }
