@@ -249,7 +249,7 @@ $@"<!DOCTYPE html>
                 </div>
                 <div class=""col s12 hide-on-med-and-up"">
                     <a href=""#"" data-target=""slide-out"" class=""sidenav-trigger""><i class=""material-icons"">menu</i></a>
-                    <a href=""lp.html"" class=""brand-logo center"">Least Portals</a>
+                    <a href=""lp.html"" class=""brand-logo center"">LP</a>
                 </div>
 			</div>
 			<div class=""nav-content"">
@@ -270,7 +270,7 @@ $@"<!DOCTYPE html>
 		<div id=""sp"">
 			<div class=""row"">
 				<div class=""col s12 m12 l8 push-l2"">
-					<table class=""highlight"">
+					<table>
 						<thead>
 							<tr>
 								<th>Player</th>
@@ -292,7 +292,7 @@ $@"<!DOCTYPE html>
 		<div id=""mp"">
 			<div class=""row"">
 				<div class=""col s12 m12 l8 push-l2"">
-					<table class=""highlight"">
+					<table>
 						<thead>
 							<tr>
 								<th>Player</th>
@@ -309,7 +309,7 @@ $@"<!DOCTYPE html>
 		<div id=""all"">
 			<div class=""row"">
 				<div class=""col s12 m12 l8 push-l2"">
-					<table class=""highlight"">
+					<table>
 						<thead>
 							<tr>
 								<th>Player</th>
@@ -346,7 +346,7 @@ $@"<!DOCTYPE html>
 			</div>
 			<div class=""row"">
 				<div class=""col s12 m12 l8 push-l2"">
-					<table class=""highlight"">
+					<table>
 						<thead>
 							<tr>
 								<th>Map</th>
@@ -458,7 +458,7 @@ $@"			<div id=""{profile.Id}"" class=""modal blue-grey darken-3"">
 					<br>
 					<div class=""row"">
 						<div class=""col s10 push-s1"">
-							<table class=""highlight"">
+							<table>
 								<thead>
 									<tr>
 										<th>Map</th>

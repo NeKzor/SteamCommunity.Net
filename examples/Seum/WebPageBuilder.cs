@@ -321,11 +321,12 @@ $@"<!DOCTYPE html>
             <li><a href=""history.html"">History</a></li>
             <li><a href=""skill.html"">Skill Points</a></li>
             <li><a href=""seum.html"">SEUM</a></li>
+            <li><a href=""yearly.html"">Yearly</a></li>
         </ul>
 		<div id=""sp"">
 			<div class=""row"">
 				<div class=""col s12 m12 l8 push-l2"">
-					<table class=""highlight"">
+					<table>
 						<thead>
 							<tr>
 								<th>Player</th>
@@ -347,7 +348,7 @@ $@"<!DOCTYPE html>
 		<div id=""mp"">
 			<div class=""row"">
 				<div class=""col s12 m12 l8 push-l2"">
-					<table class=""highlight"">
+					<table>
 						<thead>
 							<tr>
 								<th>Player</th>
@@ -364,7 +365,7 @@ $@"<!DOCTYPE html>
 		<div id=""all"">
 			<div class=""row"">
 				<div class=""col s12 m12 l8 push-l2"">
-					<table class=""highlight"">
+					<table>
 						<thead>
 							<tr>
 								<th>Player</th>
@@ -462,7 +463,7 @@ $@"			<div id=""{player.Id}"" class=""modal blue-grey darken-3"">
 					<br>
 					<div class=""row"">
 						<div class=""col s10 push-s1"">
-							<table class=""highlight"">
+							<table>
 								<thead>
 									<tr>
 										<th>Map</th>
