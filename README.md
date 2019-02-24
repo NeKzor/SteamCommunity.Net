@@ -18,5 +18,5 @@ var feed = await client.GetStatsFeedAsync(76561198049848090u, 620);
 
 ## Examples
 
-### [LeastPortals](examples/LeastPortals)
+### [lp](https://github.com/NeKzor/lp)
 [![Showcase](showcase.png)](https://nekzor.github.io/lp)
