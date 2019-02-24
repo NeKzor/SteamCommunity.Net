@@ -135,5 +135,14 @@ namespace SteamCommunity.Net.Tests
 			//Assert.True(feed.Achievements.Count() > 0);
 			//Assert.True(feed.Stats.Count() > 0);
         }
+
+        /* [Fact]
+        public async void ThankYouValveVeryCool()
+        {
+            var golden = await _client.GetProfileAsync(76561197978601137u);
+
+            Assert.NotNull(golden);
+            Assert.True(golden.State == OnlineState.Golden);
+        } */
     }
 }

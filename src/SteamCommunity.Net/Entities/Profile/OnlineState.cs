@@ -4,6 +4,7 @@ namespace SteamCommunity
 	{
 		Offline,
 		Online,
-		InGame
+		InGame,
+        Golden
 	}
 }
