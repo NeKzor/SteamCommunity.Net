@@ -15,12 +15,12 @@ namespace SteamCommunity
 		int ResultCount { get; }
 		IEnumerable<ILeaderboardEntry> Entries { get; }
 		Task<IGlobalLeaderboard> GetNextAsync();
-		Task<IGlobalLeaderboard> GetNextAsync(uint jumps);
+		Task<IGlobalLeaderboard> GetNextAsync(int jumps);
 		Task<IGlobalLeaderboard> GetNextAsync(bool ignoreCache);
-		Task<IGlobalLeaderboard> GetNextAsync(uint jumps, bool ignoreCache);
+		Task<IGlobalLeaderboard> GetNextAsync(int jumps, bool ignoreCache);
 		Task<IGlobalLeaderboard> GetPreviousAsync();
-		Task<IGlobalLeaderboard> GetPreviousAsync(uint jumps);
+		Task<IGlobalLeaderboard> GetPreviousAsync(int jumps);
 		Task<IGlobalLeaderboard> GetPreviousAsync(bool ignoreCache);
-		Task<IGlobalLeaderboard> GetPreviousAsync(uint jumps, bool ignoreCache);
+		Task<IGlobalLeaderboard> GetPreviousAsync(int jumps, bool ignoreCache);
 	}
 }

@@ -20,28 +20,28 @@ namespace SteamCommunity
 		internal SteamCommunityClient Client { get; private set; }
 
 		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetNextAsync()
-			=> await Client.GetLeaderboardAsync(AppFriendlyName, AppId, (uint)EntryEnd + 1)
+			=> await Client.GetLeaderboardAsync(AppFriendlyName, Id, (int)EntryEnd + 1, ResultCount)
 				.ConfigureAwait(false);
-		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetNextAsync(uint jumps)
-			=> await Client.GetLeaderboardAsync(AppFriendlyName, AppId, (uint)(EntryEnd + 1) * jumps)
+		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetNextAsync(int jumps)
+			=> await Client.GetLeaderboardAsync(AppFriendlyName, Id, (int)EntryEnd + 1 * jumps, ResultCount)
 				.ConfigureAwait(false);
 		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetNextAsync(bool ignoreCache)
-			=> await Client.GetLeaderboardAsync(AppFriendlyName, AppId, (uint)EntryEnd + 1, ignoreCache: ignoreCache)
+			=> await Client.GetLeaderboardAsync(AppFriendlyName, Id, (int)EntryEnd + 1, ResultCount, ignoreCache)
 				.ConfigureAwait(false);
-		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetNextAsync(uint jumps, bool ignoreCache)
-			=> await Client.GetLeaderboardAsync(AppFriendlyName, AppId, (uint)(EntryEnd + 1) * jumps, ignoreCache: ignoreCache)
+		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetNextAsync(int jumps, bool ignoreCache)
+			=> await Client.GetLeaderboardAsync(AppFriendlyName, Id, ((int)EntryEnd + 1) * jumps, ResultCount, ignoreCache)
 				.ConfigureAwait(false);
 		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetPreviousAsync()
-			=> await Client.GetLeaderboardAsync(AppFriendlyName, AppId, (uint)(EntryStart - ResultCount))
+			=> await Client.GetLeaderboardAsync(AppFriendlyName, Id, (int)EntryStart - ResultCount, ResultCount)
 				.ConfigureAwait(false);
-		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetPreviousAsync(uint jumps)
-			=> await Client.GetLeaderboardAsync(AppFriendlyName, AppId, (uint)(EntryStart - (ResultCount * jumps)))
+		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetPreviousAsync(int jumps)
+			=> await Client.GetLeaderboardAsync(AppFriendlyName, Id, (int)EntryStart - (ResultCount * jumps), ResultCount)
 				.ConfigureAwait(false);
 		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetPreviousAsync(bool ignoreCache)
-			=> await Client.GetLeaderboardAsync(AppFriendlyName, AppId, (uint)(EntryStart - ResultCount), ignoreCache: ignoreCache)
+			=> await Client.GetLeaderboardAsync(AppFriendlyName, Id, (int)EntryStart - ResultCount, ResultCount, ignoreCache)
 				.ConfigureAwait(false);
-		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetPreviousAsync(uint jumps, bool ignoreCache)
-			=> await Client.GetLeaderboardAsync(AppFriendlyName, AppId, (uint)(EntryStart - (ResultCount * jumps)), ignoreCache: ignoreCache)
+		async Task<IGlobalLeaderboard> IGlobalLeaderboard.GetPreviousAsync(int jumps, bool ignoreCache)
+			=> await Client.GetLeaderboardAsync(AppFriendlyName, Id, (int)EntryStart - (ResultCount * jumps), ResultCount, ignoreCache)
 				.ConfigureAwait(false);
 
 		internal static Leaderboard Create(SteamCommunityClient client, Model model)

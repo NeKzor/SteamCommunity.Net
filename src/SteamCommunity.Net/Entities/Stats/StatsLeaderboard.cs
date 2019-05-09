@@ -15,10 +15,10 @@ namespace SteamCommunity
 
 		public async Task<IGlobalLeaderboard> GetLeaderboardAsync(
 			IStatsLeaderboardEntry entry,
-			uint entryStart = 0,
-			uint entryEnd = 5000,
+			int entryStart = 0,
+		    int amount = 5000,
 			bool ignoreCache = false)
-			=> await Client.GetLeaderboardAsync(AppFriendlyName, entry.Id, entryStart, entryEnd, ignoreCache)
+			=> await Client.GetLeaderboardAsync(AppFriendlyName, entry.Id, entryStart, amount, ignoreCache)
 				.ConfigureAwait(false);
 
 		internal static StatsLeaderboard Create(SteamCommunityClient client, Model model)

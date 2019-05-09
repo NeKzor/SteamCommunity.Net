@@ -79,19 +79,17 @@ namespace SteamCommunity
 		public async Task<IGlobalLeaderboard> GetLeaderboardAsync(
 			string appName,
 			int leaderboardId,
-			uint entryStart = 0,
-			uint entryEnd = 5000,
+			int entryStart = 0,
+			int amount = 5000,
 			bool ignoreCache = false)
 		{
-			if (entryEnd - entryStart  > 5000)
-				throw new InvalidOperationException("Cannot fetch more than 5000 entries.");
-
 			var result = default(IGlobalLeaderboard);
 			try
 			{
 				var get = $"/stats/{appName.Replace(" ", string.Empty)}/leaderboards/{leaderboardId}?xml=1" +
 					$"&start={entryStart}" +
-					$"&end={entryEnd}";
+					$"&end={entryStart + amount}";
+
 				var model = await GetCacheOrFetch<LeaderboardModel>(get, ignoreCache).ConfigureAwait(false);
 				result = await Task.Run(() => Leaderboard.Create(this, model)).ConfigureAwait(false);
 			}
